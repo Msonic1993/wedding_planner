@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Profile\Exceptions\WeddingProfileAlreadyExistsException;
+use App\Domain\Vendor\Exceptions\VendorProfileAlreadyExistsException;
 use App\Http\Controllers\BaseController;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias(['role' => RoleMiddleware::class]);
+        $middleware->redirectGuestsTo(fn (): null => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -62,6 +64,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (WeddingProfileAlreadyExistsException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return BaseController::errorResponse(__('app.profile.already_exists'), Response::HTTP_CONFLICT);
+            }
+        });
+        $exceptions->render(function (VendorProfileAlreadyExistsException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return BaseController::errorResponse(__('app.vendor.already_exists'), Response::HTTP_CONFLICT);
             }
         });
     })->create();

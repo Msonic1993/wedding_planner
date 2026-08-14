@@ -11,6 +11,10 @@ profile:
   created: "Profil został utworzony."
   updated: "Profil został zaktualizowany."
   already_exists: "Profil użytkownika już istnieje."
+vendor:
+  created: "Profil usługodawcy został utworzony."
+  updated: "Profil usługodawcy został zaktualizowany."
+  already_exists: "Profil usługodawcy już istnieje."
 errors:
   unauthenticated: "Brak uwierzytelnienia."
   unauthorized: "Nie masz uprawnień do wykonania tej operacji."

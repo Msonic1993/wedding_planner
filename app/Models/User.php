@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Profile\Models\WeddingProfile;
+use App\Domain\Vendor\Models\VendorProfile;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -38,5 +39,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function weddingProfile(): HasOne
     {
         return $this->hasOne(WeddingProfile::class);
+    }
+
+    public function vendorProfile(): HasOne
+    {
+        return $this->hasOne(VendorProfile::class);
     }
 }

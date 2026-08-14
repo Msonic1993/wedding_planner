@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\VendorProfileController;
 use App\Http\Controllers\Api\V1\WeddingProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('vendor-categories', [VendorProfileController::class, 'categories']);
     Route::prefix('auth')->controller(AuthController::class)->group(function (): void {
         Route::post('register', 'register')->middleware('throttle:6,1');
         Route::post('login', 'login')->middleware('throttle:6,1');
@@ -30,4 +32,9 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/', 'store');
             Route::patch('/', 'update');
         });
+    Route::middleware(['auth:sanctum', 'role:vendor'])->prefix('vendor/profile')->controller(VendorProfileController::class)->group(function (): void {
+        Route::get('/', 'show');
+        Route::post('/', 'store');
+        Route::patch('/', 'update');
+    });
 });
