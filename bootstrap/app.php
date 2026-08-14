@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Profile\Exceptions\WeddingProfileAlreadyExistsException;
 use App\Http\Controllers\BaseController;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -9,6 +10,9 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Spatie\Permission\Exceptions\UnauthorizedException as SpatieUnauthorizedException;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias(['role' => RoleMiddleware::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -37,9 +41,27 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->render(function (SpatieUnauthorizedException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return BaseController::errorResponse(__('app.errors.unauthorized'), Response::HTTP_FORBIDDEN);
+            }
+        });
+
         $exceptions->render(function (ModelNotFoundException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return BaseController::errorResponse(__('app.errors.not_found'), Response::HTTP_NOT_FOUND);
+            }
+        });
+
+        $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return BaseController::errorResponse(__('app.errors.not_found'), Response::HTTP_NOT_FOUND);
+            }
+        });
+
+        $exceptions->render(function (WeddingProfileAlreadyExistsException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return BaseController::errorResponse(__('app.profile.already_exists'), Response::HTTP_CONFLICT);
             }
         });
     })->create();

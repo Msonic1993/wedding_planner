@@ -22,6 +22,12 @@ abstract class ApiRequest extends FormRequest
             'confirmed' => __('app.errors.validation.confirmed'),
             'current_password' => __('app.errors.validation.current_password'),
             'in' => __('app.errors.validation.in'),
+            'date' => __('app.errors.validation.date'),
+            'after_or_equal' => __('app.errors.validation.after_or_equal'),
+            'numeric' => __('app.errors.validation.numeric'),
+            'integer' => __('app.errors.validation.integer'),
+            'min' => __('app.errors.validation.min'),
+            'image' => __('app.errors.validation.image'),
         ];
     }
 

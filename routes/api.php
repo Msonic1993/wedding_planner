@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\WeddingProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -20,4 +21,13 @@ Route::prefix('v1')->group(function (): void {
             ->middleware(['auth:sanctum', 'signed', 'throttle:6,1'])
             ->name('verification.verify');
     });
+
+    Route::middleware(['auth:sanctum', 'role:bride|groom'])
+        ->prefix('profile')
+        ->controller(WeddingProfileController::class)
+        ->group(function (): void {
+            Route::get('/', 'show');
+            Route::post('/', 'store');
+            Route::patch('/', 'update');
+        });
 });

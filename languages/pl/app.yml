@@ -7,6 +7,10 @@ auth:
   email_verified: "Adres e-mail został zweryfikowany."
   email_verification_sent: "Wysłano wiadomość weryfikacyjną."
   account_deleted: "Konto zostało trwale usunięte."
+profile:
+  created: "Profil został utworzony."
+  updated: "Profil został zaktualizowany."
+  already_exists: "Profil użytkownika już istnieje."
 errors:
   unauthenticated: "Brak uwierzytelnienia."
   unauthorized: "Nie masz uprawnień do wykonania tej operacji."
@@ -23,3 +27,9 @@ errors:
     confirmed: "Potwierdzenie pola :attribute nie jest zgodne."
     current_password: "Podane hasło jest nieprawidłowe."
     in: "Wybrana wartość pola :attribute jest nieprawidłowa."
+    date: "Pole :attribute musi być poprawną datą."
+    after_or_equal: "Pole :attribute nie może wskazywać daty z przeszłości."
+    numeric: "Pole :attribute musi być liczbą."
+    integer: "Pole :attribute musi być liczbą całkowitą."
+    min: "Pole :attribute ma zbyt małą wartość."
+    image: "Pole :attribute musi być obrazem."

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Application\Auth\Contracts\AuthenticationService;
 use App\Application\Auth\Services\SanctumAuthenticationService;
+use App\Application\Profile\Contracts\WeddingProfileService;
+use App\Application\Profile\Services\EloquentWeddingProfileService;
 use App\Infrastructure\Translation\YamlFileLoader;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Filesystem\Filesystem;
@@ -17,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthenticationService::class, SanctumAuthenticationService::class);
+        $this->app->bind(WeddingProfileService::class, EloquentWeddingProfileService::class);
     }
 
     /**
