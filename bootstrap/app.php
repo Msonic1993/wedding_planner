@@ -2,6 +2,7 @@
 
 use App\Domain\Profile\Exceptions\WeddingProfileAlreadyExistsException;
 use App\Domain\Vendor\Exceptions\VendorProfileAlreadyExistsException;
+use App\Domain\Vendor\Exceptions\VendorReviewAlreadyExistsException;
 use App\Http\Controllers\BaseController;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -69,6 +70,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (VendorProfileAlreadyExistsException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return BaseController::errorResponse(__('app.vendor.already_exists'), Response::HTTP_CONFLICT);
+            }
+        });
+        $exceptions->render(function (VendorReviewAlreadyExistsException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return BaseController::errorResponse(__('app.review.already_exists'), Response::HTTP_CONFLICT);
             }
         });
     })->create();

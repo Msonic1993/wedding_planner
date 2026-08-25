@@ -26,7 +26,7 @@ class VendorProfileControllerTest extends TestCase
         $this->get('/api/v1/vendor/profile')
             ->assertUnauthorized()
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Brak uwierzytelnienia.');
+            ->assertJsonPath('message', 'Unauthenticated.');
         Sanctum::actingAs(User::factory()->create());
         $this->getJson('/api/v1/vendor/profile')->assertForbidden();
         Sanctum::actingAs($this->vendor());

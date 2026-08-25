@@ -1,11 +1,19 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\VendorProfileController;
+use App\Http\Controllers\Api\V1\VendorReviewController;
 use App\Http\Controllers\Api\V1\WeddingProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('marketplace/vendors', [MarketplaceController::class, 'index']);
+    Route::middleware(['auth:sanctum', 'role:bride|groom'])->group(function (): void {
+        Route::post('vendors/{vendor}/review', [VendorReviewController::class, 'store']);
+        Route::patch('vendors/{vendor}/review', [VendorReviewController::class, 'update']);
+        Route::delete('vendors/{vendor}/review', [VendorReviewController::class, 'destroy']);
+    });
     Route::get('vendor-categories', [VendorProfileController::class, 'categories']);
     Route::prefix('auth')->controller(AuthController::class)->group(function (): void {
         Route::post('register', 'register')->middleware('throttle:6,1');

@@ -7,7 +7,9 @@ use App\Application\Auth\Services\SanctumAuthenticationService;
 use App\Application\Profile\Contracts\WeddingProfileService;
 use App\Application\Profile\Services\EloquentWeddingProfileService;
 use App\Application\Vendor\Contracts\VendorProfileService;
+use App\Application\Vendor\Contracts\VendorReviewService;
 use App\Application\Vendor\Services\EloquentVendorProfileService;
+use App\Application\Vendor\Services\EloquentVendorReviewService;
 use App\Infrastructure\Translation\YamlFileLoader;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Filesystem\Filesystem;
@@ -23,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AuthenticationService::class, SanctumAuthenticationService::class);
         $this->app->bind(WeddingProfileService::class, EloquentWeddingProfileService::class);
         $this->app->bind(VendorProfileService::class, EloquentVendorProfileService::class);
+        $this->app->bind(VendorReviewService::class, EloquentVendorReviewService::class);
     }
 
     /**

@@ -37,3 +37,8 @@ errors:
     integer: "Pole :attribute musi być liczbą całkowitą."
     min: "Pole :attribute ma zbyt małą wartość."
     image: "Pole :attribute musi być obrazem."
+review:
+  created: "Ocena została utworzona."
+  updated: "Ocena została zaktualizowana."
+  deleted: "Ocena została usunięta."
+  already_exists: "Twoja ocena dla tego usługodawcy już istnieje."

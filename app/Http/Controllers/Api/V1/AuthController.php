@@ -51,7 +51,9 @@ class AuthController extends Controller
         return $this->authenticatedResponse($result, __('app.auth.logged_in'));
     }
 
-    /** @OA\Post(path="/api/v1/auth/logout", tags={"Authentication"}, security={{"sanctum":{}}}, summary="Revoke current access token", @OA\Response(response=204, description="Logged out"), @OA\Response(response=401, description="Unauthenticated")) */
+    /**
+     * @OA\Post(path="/api/v1/auth/logout",tags={"Authentication"},security={{"sanctum":{}}},summary="Logout current device",description="Revokes only the Bearer token used by this request.",@OA\Response(response=200,description="Structured success response: success=true, message='Wylogowano pomyślnie.', data=null, errors=null"),@OA\Response(response=401,description="Missing or invalid token",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")))
+     */
     public function logout(): JsonResponse
     {
         $this->authentication->logout(request()->user());
@@ -59,7 +61,9 @@ class AuthController extends Controller
         return $this->success(message: __('app.auth.logged_out'));
     }
 
-    /** @OA\Post(path="/api/v1/auth/forgot-password", tags={"Authentication"}, summary="Send password reset link", @OA\Response(response=200, description="Reset link processed"), @OA\Response(response=422, description="Validation error")) */
+    /**
+     * @OA\Post(path="/api/v1/auth/forgot-password",tags={"Authentication"},summary="Request password reset",description="Always returns 200 to avoid exposing whether email exists.",@OA\RequestBody(required=true,@OA\JsonContent(required={"email"},@OA\Property(property="email",type="string",format="email",maxLength=255,example="anna@example.com"))),@OA\Response(response=200,description="Structured success response with reset-link message"),@OA\Response(response=422,description="Invalid email",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")))
+     */
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
         Password::sendResetLink($request->safe()->only('email'));
@@ -67,7 +71,9 @@ class AuthController extends Controller
         return $this->success(message: __('app.auth.password_reset_link_sent'));
     }
 
-    /** @OA\Post(path="/api/v1/auth/reset-password", tags={"Authentication"}, summary="Reset password using a reset token", @OA\Response(response=200, description="Password reset"), @OA\Response(response=422, description="Invalid reset data")) */
+    /**
+     * @OA\Post(path="/api/v1/auth/reset-password",tags={"Authentication"},summary="Reset password",@OA\RequestBody(required=true,@OA\JsonContent(required={"token","email","password","password_confirmation"},@OA\Property(property="token",type="string",example="token-from-email"),@OA\Property(property="email",type="string",format="email",example="anna@example.com"),@OA\Property(property="password",type="string",format="password",minLength=8,example="NoweHaslo123"),@OA\Property(property="password_confirmation",type="string",format="password",example="NoweHaslo123"))),@OA\Response(response=200,description="Structured success response"),@OA\Response(response=422,description="Invalid token, email or password",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")))
+     */
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         $status = Password::reset($request->validated(), function (User $user, string $password): void {
@@ -82,7 +88,9 @@ class AuthController extends Controller
         return $this->success(message: __('app.auth.password_reset'));
     }
 
-    /** @OA\Get(path="/api/v1/auth/email/verify/{id}/{hash}", tags={"Authentication"}, security={{"sanctum":{}}}, summary="Verify email address", @OA\Response(response=204, description="Email verified"), @OA\Response(response=401, description="Unauthenticated")) */
+    /**
+     * @OA\Get(path="/api/v1/auth/email/verify/{id}/{hash}",tags={"Authentication"},security={{"sanctum":{}}},summary="Verify email",description="Use the signed URL received in e-mail. id is the authenticated user's id; hash is SHA-1 e-mail hash.",@OA\Parameter(name="id",in="path",required=true,@OA\Schema(type="integer",example=1)),@OA\Parameter(name="hash",in="path",required=true,@OA\Schema(type="string",example="40-character-sha1")),@OA\Response(response=200,description="Structured success response"),@OA\Response(response=401,description="Unauthenticated",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")),@OA\Response(response=403,description="Invalid signed URL or another user",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")))
+     */
     public function verifyEmail(EmailVerificationRequest $request): JsonResponse
     {
         if (! $request->user()->hasVerifiedEmail()) {
@@ -92,7 +100,7 @@ class AuthController extends Controller
         return $this->success(message: __('app.auth.email_verified'));
     }
 
-    /** @OA\Post(path="/api/v1/auth/email/verification-notification", tags={"Authentication"}, security={{"sanctum":{}}}, summary="Resend email verification notification", @OA\Response(response=202, description="Notification queued"), @OA\Response(response=401, description="Unauthenticated")) */
+    /** @OA\Post(path="/api/v1/auth/email/verification-notification",tags={"Authentication"},security={{"sanctum":{}}},summary="Resend verification e-mail",description="No request body. Returns 202 and structured success response.",@OA\Response(response=202,description="Notification processed"),@OA\Response(response=401,description="Unauthenticated",@OA\JsonContent(ref="#/components/schemas/ErrorResponse"))) */
     public function sendVerificationNotification(): JsonResponse
     {
         /** @var User $user */
@@ -105,7 +113,7 @@ class AuthController extends Controller
         return $this->success(message: __('app.auth.email_verification_sent'), status: Response::HTTP_ACCEPTED);
     }
 
-    /** @OA\Delete(path="/api/v1/auth/account", tags={"Authentication"}, security={{"sanctum":{}}}, summary="Permanently delete the current account", @OA\Response(response=204, description="Account deleted"), @OA\Response(response=401, description="Unauthenticated"), @OA\Response(response=422, description="Invalid password")) */
+    /** @OA\Delete(path="/api/v1/auth/account",tags={"Authentication"},security={{"sanctum":{}}},summary="Permanently delete own account",@OA\RequestBody(required=true,@OA\JsonContent(required={"password"},@OA\Property(property="password",type="string",format="password",example="AktualneHaslo123"))),@OA\Response(response=200,description="Structured success response"),@OA\Response(response=401,description="Unauthenticated",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")),@OA\Response(response=422,description="Current password invalid",@OA\JsonContent(ref="#/components/schemas/ErrorResponse"))) */
     public function destroy(DeleteAccountRequest $request): JsonResponse
     {
         /** @var User $user */
