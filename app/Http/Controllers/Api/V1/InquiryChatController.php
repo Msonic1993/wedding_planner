@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Application\Chat\Contracts\InquiryChatService;
+use App\Domain\Chat\Models\VendorInquiry;
+use App\Domain\Vendor\Models\VendorProfile;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Chat\ChatPaginationRequest;
+use App\Http\Requests\Api\V1\Chat\CreateInquiryRequest;
+use App\Http\Requests\Api\V1\Chat\SendChatMessageRequest;
+use App\Http\Resources\Api\V1\ChatMessageResource;
+use App\Http\Resources\Api\V1\VendorInquiryResource;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+use OpenApi\Annotations as OA;
+
+class InquiryChatController extends Controller
+{
+    public function __construct(private readonly InquiryChatService $chat) {}
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/vendors/{vendor}/inquiries",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="Start an availability inquiry with a vendor",
+     *     description="Only Bride and Groom roles may create inquiries. It creates a chat thread and its first message atomically. One account can have one thread with a given vendor; use the chat message endpoint for subsequent messages. requested_date is an availability question only and does not create a booking.",
+     *
+     *     @OA\Parameter(name="vendor", in="path", required=true, description="Vendor profile ID from marketplace search.", @OA\Schema(type="integer", format="int64", example=42)),
+     *
+     *     @OA\RequestBody(required=true, description="Initial inquiry message in JSON.", @OA\JsonContent(required={"body"}, @OA\Property(property="body", type="string", minLength=1, maxLength=5000, example="Hello, are you available on 12 June 2027?"), @OA\Property(property="requested_date", type="string", format="date", nullable=true, example="2027-06-12", description="Optional requested event date in YYYY-MM-DD format."))),
+     *
+     *     @OA\Response(response=201, description="Inquiry and its initial message were created.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Inquiry has been created."), @OA\Property(property="data", ref="#/components/schemas/VendorInquiry"), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user is not Bride or Groom.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=404, description="Vendor profile does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=409, description="The account already has an inquiry thread with this vendor.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=422, description="body is absent, exceeds 5000 characters, or requested_date is invalid.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function store(CreateInquiryRequest $request, VendorProfile $vendor): JsonResponse
+    {
+        $inquiry = $this->chat->createInquiry($request->user(), $vendor, $request->validated());
+
+        return $this->success(new VendorInquiryResource($inquiry), __('app.chat.inquiry_created'), Response::HTTP_CREATED);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/chat/inquiries",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="List own inquiry threads",
+     *     description="Bride and Groom receive threads they created. Vendor receives threads addressed to vendor profiles owned by that account. Results are newest activity first. No user can see another participant's threads.",
+     *
+     *     @OA\Parameter(name="per_page", in="query", description="Items per page; default 20, minimum 1, maximum 100.", @OA\Schema(type="integer", minimum=1, maximum=100, default=20, example=20)),
+     *
+     *     @OA\Response(response=200, description="Structured success response. data is a Laravel paginator of VendorInquiry objects with current_page, per_page and total metadata.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", type="object", @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/VendorInquiry")), @OA\Property(property="current_page", type="integer", example=1), @OA\Property(property="per_page", type="integer", example=20), @OA\Property(property="total", type="integer", example=1)), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user has none of Bride, Groom, Vendor roles.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=422, description="per_page is outside the 1–100 range or is not an integer.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function index(ChatPaginationRequest $request): JsonResponse
+    {
+        $inquiries = $this->chat->listInquiries($request->user(), $request->integer('per_page', 20));
+
+        return $this->success(VendorInquiryResource::collection($inquiries));
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/chat/inquiries/{inquiry}/messages",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="Read messages from an inquiry thread",
+     *     description="Only the couple who created the inquiry and the owner of the addressed vendor profile may read the thread. Messages are sorted oldest first for direct chronological rendering in a mobile chat UI.",
+     *
+     *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID returned by GET /chat/inquiries.", @OA\Schema(type="integer", format="int64", example=31)),
+     *     @OA\Parameter(name="per_page", in="query", description="Messages per page; default 20, minimum 1, maximum 100.", @OA\Schema(type="integer", minimum=1, maximum=100, default=20, example=20)),
+     *
+     *     @OA\Response(response=200, description="Structured success response. data is a Laravel paginator of ChatMessage objects.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", type="object", @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/ChatMessage")), @OA\Property(property="current_page", type="integer", example=1), @OA\Property(property="per_page", type="integer", example=20), @OA\Property(property="total", type="integer", example=2)), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=422, description="Invalid per_page query parameter.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function messages(ChatPaginationRequest $request, VendorInquiry $inquiry): JsonResponse
+    {
+        $messages = $this->chat->listMessages($request->user(), $inquiry, $request->integer('per_page', 20));
+
+        return $this->success(ChatMessageResource::collection($messages));
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/chat/inquiries/{inquiry}/messages",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="Send a message in an inquiry thread",
+     *     description="Only a conversation participant can send a message. The sender is always derived from the Sanctum token; do not send sender_id. This endpoint is used by both the couple and the vendor to continue the internal chat.",
+     *
+     *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID.", @OA\Schema(type="integer", format="int64", example=31)),
+     *
+     *     @OA\RequestBody(required=true, description="JSON message payload.", @OA\JsonContent(required={"body"}, @OA\Property(property="body", type="string", minLength=1, maxLength=5000, example="Yes, that date is currently available."))),
+     *
+     *     @OA\Response(response=201, description="Message created.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Message has been sent."), @OA\Property(property="data", ref="#/components/schemas/ChatMessage"), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=422, description="body is absent or exceeds 5000 characters.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function send(SendChatMessageRequest $request, VendorInquiry $inquiry): JsonResponse
+    {
+        $message = $this->chat->sendMessage($request->user(), $inquiry, $request->validated());
+
+        return $this->success(new ChatMessageResource($message), __('app.chat.message_sent'), Response::HTTP_CREATED);
+    }
+}

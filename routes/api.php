@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\InquiryChatController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\VendorProfileController;
 use App\Http\Controllers\Api\V1\VendorReviewController;
@@ -9,6 +10,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('marketplace/vendors', [MarketplaceController::class, 'index']);
+    Route::middleware(['auth:sanctum', 'role:bride|groom'])->post('vendors/{vendor}/inquiries', [InquiryChatController::class, 'store']);
+    Route::middleware(['auth:sanctum', 'role:bride|groom|vendor'])->prefix('chat')->controller(InquiryChatController::class)->group(function (): void {
+        Route::get('inquiries', 'index');
+        Route::get('inquiries/{inquiry}/messages', 'messages');
+        Route::post('inquiries/{inquiry}/messages', 'send');
+    });
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->group(function (): void {
         Route::post('vendors/{vendor}/review', [VendorReviewController::class, 'store']);
         Route::patch('vendors/{vendor}/review', [VendorReviewController::class, 'update']);

@@ -20,6 +20,10 @@ review:
   updated: "Review has been updated."
   deleted: "Review has been deleted."
   already_exists: "Your review for this vendor already exists."
+chat:
+  inquiry_created: "Inquiry has been created."
+  inquiry_already_exists: "You already have an inquiry with this vendor."
+  message_sent: "Message has been sent."
 errors:
   unauthenticated: "Unauthenticated."
   unauthorized: "You are not authorized to perform this action."

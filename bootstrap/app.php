@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Chat\Exceptions\InquiryAlreadyExistsException;
 use App\Domain\Profile\Exceptions\WeddingProfileAlreadyExistsException;
 use App\Domain\Vendor\Exceptions\VendorProfileAlreadyExistsException;
 use App\Domain\Vendor\Exceptions\VendorReviewAlreadyExistsException;
@@ -75,6 +76,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (VendorReviewAlreadyExistsException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return BaseController::errorResponse(__('app.review.already_exists'), Response::HTTP_CONFLICT);
+            }
+        });
+        $exceptions->render(function (InquiryAlreadyExistsException $exception, Request $request) {
+            if ($request->is('api/*')) {
+                return BaseController::errorResponse(__('app.chat.inquiry_already_exists'), Response::HTTP_CONFLICT);
             }
         });
     })->create();

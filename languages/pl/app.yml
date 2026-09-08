@@ -42,3 +42,7 @@ review:
   updated: "Ocena została zaktualizowana."
   deleted: "Ocena została usunięta."
   already_exists: "Twoja ocena dla tego usługodawcy już istnieje."
+chat:
+  inquiry_created: "Zapytanie zostało utworzone."
+  inquiry_already_exists: "Masz już zapytanie do tego usługodawcy."
+  message_sent: "Wiadomość została wysłana."
