@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Application\Auth\Contracts\AuthenticationService;
 use App\Application\Auth\Services\SanctumAuthenticationService;
+use App\Application\Budget\Contracts\BudgetService;
+use App\Application\Budget\Services\EloquentBudgetService;
 use App\Application\Chat\Contracts\InquiryChatService;
 use App\Application\Chat\Services\EloquentInquiryChatService;
 use App\Application\Profile\Contracts\WeddingProfileService;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthenticationService::class, SanctumAuthenticationService::class);
+        $this->app->bind(BudgetService::class, EloquentBudgetService::class);
         $this->app->bind(InquiryChatService::class, EloquentInquiryChatService::class);
         $this->app->bind(WeddingProfileService::class, EloquentWeddingProfileService::class);
         $this->app->bind(VendorProfileService::class, EloquentVendorProfileService::class);

@@ -34,6 +34,7 @@ errors:
     date: "Pole :attribute musi być poprawną datą."
     after_or_equal: "Pole :attribute nie może wskazywać daty z przeszłości."
     numeric: "Pole :attribute musi być liczbą."
+    decimal: "Pole :attribute musi mieć od :min do :max miejsc po przecinku."
     integer: "Pole :attribute musi być liczbą całkowitą."
     min: "Pole :attribute ma zbyt małą wartość."
     image: "Pole :attribute musi być obrazem."
@@ -46,3 +47,7 @@ chat:
   inquiry_created: "Zapytanie zostało utworzone."
   inquiry_already_exists: "Masz już zapytanie do tego usługodawcy."
   message_sent: "Wiadomość została wysłana."
+budget:
+  item_created: "Pozycja budżetu została utworzona."
+  item_updated: "Pozycja budżetu została zaktualizowana."
+  item_deleted: "Pozycja budżetu została usunięta."

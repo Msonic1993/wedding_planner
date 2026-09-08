@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BudgetController;
 use App\Http\Controllers\Api\V1\InquiryChatController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\VendorProfileController;
@@ -9,6 +10,14 @@ use App\Http\Controllers\Api\V1\WeddingProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'role:bride|groom'])->prefix('budget')->controller(BudgetController::class)->group(function (): void {
+        Route::get('categories', 'categories');
+        Route::get('/', 'show');
+        Route::post('items', 'store');
+        Route::get('items/{item}', 'item')->whereNumber('item');
+        Route::patch('items/{item}', 'update')->whereNumber('item');
+        Route::delete('items/{item}', 'destroy')->whereNumber('item');
+    });
     Route::get('marketplace/vendors', [MarketplaceController::class, 'index']);
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->post('vendors/{vendor}/inquiries', [InquiryChatController::class, 'store']);
     Route::middleware(['auth:sanctum', 'role:bride|groom|vendor'])->prefix('chat')->controller(InquiryChatController::class)->group(function (): void {

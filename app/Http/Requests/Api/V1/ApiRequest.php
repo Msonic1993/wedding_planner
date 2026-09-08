@@ -25,6 +25,7 @@ abstract class ApiRequest extends FormRequest
             'date' => __('app.errors.validation.date'),
             'after_or_equal' => __('app.errors.validation.after_or_equal'),
             'numeric' => __('app.errors.validation.numeric'),
+            'decimal' => __('app.errors.validation.decimal'),
             'integer' => __('app.errors.validation.integer'),
             'min' => __('app.errors.validation.min'),
             'image' => __('app.errors.validation.image'),
