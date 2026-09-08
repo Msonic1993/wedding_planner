@@ -28,6 +28,9 @@ budget:
   item_created: "Budget item has been created."
   item_updated: "Budget item has been updated."
   item_deleted: "Budget item has been deleted."
+favorite:
+  saved: "Vendor has been added to favorites."
+  removed: "Vendor has been removed from favorites."
 errors:
   unauthenticated: "Unauthenticated."
   unauthorized: "You are not authorized to perform this action."

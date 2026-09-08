@@ -51,3 +51,6 @@ budget:
   item_created: "Pozycja budżetu została utworzona."
   item_updated: "Pozycja budżetu została zaktualizowana."
   item_deleted: "Pozycja budżetu została usunięta."
+favorite:
+  saved: "Usługodawca został dodany do ulubionych."
+  removed: "Usługodawca został usunięty z ulubionych."

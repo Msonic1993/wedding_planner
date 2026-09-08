@@ -8,6 +8,8 @@ use App\Application\Budget\Contracts\BudgetService;
 use App\Application\Budget\Services\EloquentBudgetService;
 use App\Application\Chat\Contracts\InquiryChatService;
 use App\Application\Chat\Services\EloquentInquiryChatService;
+use App\Application\Favorite\Contracts\FavoriteService;
+use App\Application\Favorite\Services\EloquentFavoriteService;
 use App\Application\Profile\Contracts\WeddingProfileService;
 use App\Application\Profile\Services\EloquentWeddingProfileService;
 use App\Application\Vendor\Contracts\VendorProfileService;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AuthenticationService::class, SanctumAuthenticationService::class);
         $this->app->bind(BudgetService::class, EloquentBudgetService::class);
         $this->app->bind(InquiryChatService::class, EloquentInquiryChatService::class);
+        $this->app->bind(FavoriteService::class, EloquentFavoriteService::class);
         $this->app->bind(WeddingProfileService::class, EloquentWeddingProfileService::class);
         $this->app->bind(VendorProfileService::class, EloquentVendorProfileService::class);
         $this->app->bind(VendorReviewService::class, EloquentVendorReviewService::class);

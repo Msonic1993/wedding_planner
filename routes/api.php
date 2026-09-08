@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BudgetController;
+use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\InquiryChatController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
 use App\Http\Controllers\Api\V1\VendorProfileController;
@@ -10,6 +11,11 @@ use App\Http\Controllers\Api\V1\WeddingProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'role:bride|groom'])->prefix('favorites')->controller(FavoriteController::class)->group(function (): void {
+        Route::get('vendors', 'index');
+        Route::put('vendors/{vendor}', 'store');
+        Route::delete('vendors/{vendor}', 'destroy');
+    });
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->prefix('budget')->controller(BudgetController::class)->group(function (): void {
         Route::get('categories', 'categories');
         Route::get('/', 'show');
