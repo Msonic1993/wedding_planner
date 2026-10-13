@@ -8,20 +8,34 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $couple_user_id
+ * @property Carbon|null $requested_date
+ * @property int|null $messages_count
+ * @property VendorProfile $vendorProfile
+ * @property User $couple
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 #[Fillable(['requested_date'])]
 class VendorInquiry extends Model
 {
+    /** @return BelongsTo<VendorProfile, $this> */
     public function vendorProfile(): BelongsTo
     {
         return $this->belongsTo(VendorProfile::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function couple(): BelongsTo
     {
         return $this->belongsTo(User::class, 'couple_user_id');
     }
 
+    /** @return HasMany<ChatMessage, $this> */
     public function messages(): HasMany
     {
         return $this->hasMany(ChatMessage::class);

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AuthControllerTest extends TestCase
@@ -81,6 +82,28 @@ class AuthControllerTest extends TestCase
             ->assertJsonPath('success', true);
 
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $token->accessToken->id]);
+    }
+
+    public function test_authenticated_user_can_restore_the_latest_session_data(): void
+    {
+        $this->getJson('/api/v1/auth/me')
+            ->assertUnauthorized()
+            ->assertJsonPath('success', false);
+
+        $user = User::factory()->create(['name' => 'Anna Updated']);
+        Role::findOrCreate('bride', 'web');
+        $user->assignRole('bride');
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.name', 'Anna Updated')
+            ->assertJsonPath('data.email', $user->email)
+            ->assertJsonPath('data.roles.0', 'bride')
+            ->assertJsonPath('errors', null);
     }
 
     public function test_password_reset_link_is_sent_and_password_can_be_reset(): void

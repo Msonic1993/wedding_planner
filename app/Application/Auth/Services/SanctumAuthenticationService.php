@@ -40,7 +40,7 @@ class SanctumAuthenticationService implements AuthenticationService
 
     public function logout(User $user): void
     {
-        $user->currentAccessToken()?->delete();
+        $user->currentAccessToken()->delete();
     }
 
     public function deleteAccount(User $user): void

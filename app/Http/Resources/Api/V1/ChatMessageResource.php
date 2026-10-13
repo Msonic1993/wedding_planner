@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Domain\Chat\Models\ChatMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin ChatMessage */
 class ChatMessageResource extends JsonResource
 {
     public function toArray(Request $request): array

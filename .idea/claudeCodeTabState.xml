@@ -9,7 +9,7 @@
               <option name="provider" value="codex" />
               <option name="sessionId" value="019ffb14-dca8-72f2-a712-eb01235e4e59" />
               <option name="cwd" value="D:\PhpstormProjects\wedding_planner" />
-              <option name="model" value="gpt-6 Astra" />
+              <option name="model" value="gpt-5.6-sol" />
               <option name="permissionMode" value="bypassPermissions" />
               <option name="reasoningEffort" value="medium" />
             </TabSessionState>

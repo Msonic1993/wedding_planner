@@ -7,15 +7,34 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string|null $description
+ * @property string|null $website
+ * @property string|null $voivodeship
+ * @property array<int, string> $cities
+ * @property array<int, string> $categories
+ * @property string|null $price_from
+ * @property string|null $price_to
+ * @property Carbon|null $available_from
+ * @property Carbon|null $available_to
+ * @property array<int, string> $image_paths
+ * @property numeric-string|null $reviews_avg_rating
+ * @property int|null $reviews_count
+ */
 #[Fillable(['name', 'description', 'phone', 'email', 'website', 'social_media', 'voivodeship', 'cities', 'categories', 'price_from', 'price_to', 'available_from', 'available_to', 'image_paths', 'price_list_path'])]
 class VendorProfile extends Model
 {
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<VendorReview, $this> */
     public function reviews(): HasMany
     {
         return $this->hasMany(VendorReview::class);

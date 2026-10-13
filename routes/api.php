@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('reset-password', 'resetPassword')->middleware('throttle:6,1');
 
         Route::middleware('auth:sanctum')->group(function (): void {
+            Route::get('me', 'me');
             Route::post('logout', 'logout');
             Route::post('email/verification-notification', 'sendVerificationNotification')->middleware('throttle:6,1');
             Route::delete('account', 'destroy');

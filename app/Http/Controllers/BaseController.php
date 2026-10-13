@@ -8,7 +8,7 @@ use Illuminate\Support\MessageBag;
 
 abstract class BaseController
 {
-    /** @param array<string, mixed>|object|null $data */
+    /** @param array<mixed>|object|null $data */
     protected function success(mixed $data = null, ?string $message = null, int $status = Response::HTTP_OK): JsonResponse
     {
         return response()->json([

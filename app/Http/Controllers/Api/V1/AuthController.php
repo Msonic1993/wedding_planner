@@ -16,6 +16,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -49,6 +50,39 @@ class AuthController extends Controller
         }
 
         return $this->authenticatedResponse($result, __('app.auth.logged_in'));
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/auth/me",
+     *     tags={"Authentication"},
+     *     security={{"sanctum":{}}},
+     *     summary="Get the authenticated user",
+     *     description="Validates the current Bearer token and returns the latest account data and roles. Clients should use this endpoint when restoring a persisted session.",
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Current user.",
+     *
+     *         @OA\JsonContent(
+     *             required={"success","message","data","errors"},
+     *
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", nullable=true, example=null),
+     *             @OA\Property(property="data", ref="#/components/schemas/User"),
+     *             @OA\Property(property="errors", nullable=true, example=null)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function me(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->success(new UserResource($user));
     }
 
     /**

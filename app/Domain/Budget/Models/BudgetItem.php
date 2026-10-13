@@ -7,7 +7,19 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property BudgetCategory $category
+ * @property string $estimated_amount
+ * @property string $paid_amount
+ * @property Carbon|null $due_date
+ * @property string|null $notes
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 #[Fillable(['name', 'category', 'estimated_amount', 'paid_amount', 'due_date', 'notes'])]
 class BudgetItem extends Model
 {
@@ -27,6 +39,7 @@ class BudgetItem extends Model
         return bccomp($this->paid_amount, $this->estimated_amount, 2) >= 0 ? 'paid' : 'partially_paid';
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
