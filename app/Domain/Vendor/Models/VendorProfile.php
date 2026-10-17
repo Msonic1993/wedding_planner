@@ -15,7 +15,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $description
  * @property string|null $website
  * @property string|null $voivodeship
+ * @property string|null $country_code
+ * @property string|null $region_code
  * @property array<int, string> $cities
+ * @property array<int, int> $city_ids
  * @property array<int, string> $categories
  * @property string|null $price_from
  * @property string|null $price_to
@@ -25,7 +28,7 @@ use Illuminate\Support\Carbon;
  * @property numeric-string|null $reviews_avg_rating
  * @property int|null $reviews_count
  */
-#[Fillable(['name', 'description', 'phone', 'email', 'website', 'social_media', 'voivodeship', 'cities', 'categories', 'price_from', 'price_to', 'available_from', 'available_to', 'image_paths', 'price_list_path'])]
+#[Fillable(['name', 'description', 'phone', 'email', 'website', 'social_media', 'country_code', 'region_code', 'voivodeship', 'cities', 'city_ids', 'categories', 'price_from', 'price_to', 'available_from', 'available_to', 'image_paths', 'price_list_path'])]
 class VendorProfile extends Model
 {
     /** @return BelongsTo<User, $this> */
@@ -42,6 +45,6 @@ class VendorProfile extends Model
 
     protected function casts(): array
     {
-        return ['social_media' => 'array', 'cities' => 'array', 'categories' => 'array', 'image_paths' => 'array', 'price_from' => 'decimal:2', 'price_to' => 'decimal:2', 'available_from' => 'date', 'available_to' => 'date'];
+        return ['social_media' => 'array', 'cities' => 'array', 'city_ids' => 'array', 'categories' => 'array', 'image_paths' => 'array', 'price_from' => 'decimal:2', 'price_to' => 'decimal:2', 'available_from' => 'date', 'available_to' => 'date'];
     }
 }

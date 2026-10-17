@@ -56,15 +56,7 @@ class VendorProfileController extends Controller
      * @OA\Post(path="/api/v1/vendor/profile",tags={"Vendors"},security={{"sanctum":{}}},summary="Create own vendor profile",
      *   description="Send multipart/form-data. Required fields are name and at least one categories[] value. Arrays use PHP bracket names.",
      *
-     *   @OA\RequestBody(required=true,@OA\MediaType(mediaType="multipart/form-data",@OA\Schema(required={"name","categories[]"},
-     *
-     *     @OA\Property(property="name",type="string",maxLength=255,example="Studio Foto Kowalski"), @OA\Property(property="description",type="string",example="Reportaże ślubne w całej Polsce."),
-     *     @OA\Property(property="phone",type="string",maxLength=30,example="+48500100200"), @OA\Property(property="email",type="string",format="email",example="kontakt@studio.pl"),
-     *     @OA\Property(property="website",type="string",format="uri",example="https://studio.pl"), @OA\Property(property="social_media[instagram]",type="string",format="uri",example="https://instagram.com/studio"),
-     *     @OA\Property(property="voivodeship",type="string",maxLength=100,example="mazowieckie"), @OA\Property(property="cities[]",type="string",maxLength=100,example="Warszawa"),
-     *     @OA\Property(property="categories[]",type="string",enum={"photographer","videographer","dj","band","venue","florist","decorations","cake","car","makeup","hairdresser","wedding_planner"},example="photographer"),
-     *     @OA\Property(property="images[]",type="string",format="binary",description="Image; max 5 MB; maximum 10 files."), @OA\Property(property="price_list",type="string",format="binary",description="PDF, JPG, JPEG or PNG; max 10 MB.")
-     *   ))),
+     *   @OA\RequestBody(required=true,@OA\MediaType(mediaType="multipart/form-data",@OA\Schema(ref="#/components/schemas/VendorProfileInput"))),
      *
      *   @OA\Response(response=201,description="Created",@OA\JsonContent(@OA\Property(property="success",type="boolean",example=true),@OA\Property(property="message",type="string",example="Profil usługodawcy został utworzony."),@OA\Property(property="data",ref="#/components/schemas/VendorProfile"),@OA\Property(property="errors",nullable=true,example=null))),
      *   @OA\Response(response=401,description="Unauthenticated",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")), @OA\Response(response=403,description="Wrong role",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")), @OA\Response(response=409,description="Profile exists",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")), @OA\Response(response=422,description="Validation error",@OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
@@ -79,7 +71,7 @@ class VendorProfileController extends Controller
      * @OA\Patch(path="/api/v1/vendor/profile",tags={"Vendors"},security={{"sanctum":{}}},summary="Update own vendor profile",
      *   description="Same multipart fields, types, enum values and file limits as POST. Current validation requires name and categories[] on each PATCH.",
      *
-     *   @OA\RequestBody(required=true,@OA\MediaType(mediaType="multipart/form-data",@OA\Schema(required={"name","categories[]"},@OA\Property(property="name",type="string",example="Studio Foto Kowalski"),@OA\Property(property="categories[]",type="string",example="photographer"),@OA\Property(property="images[]",type="string",format="binary"),@OA\Property(property="price_list",type="string",format="binary")))),
+     *   @OA\RequestBody(required=true,@OA\MediaType(mediaType="multipart/form-data",@OA\Schema(ref="#/components/schemas/VendorProfileInput"))),
      *
      *   @OA\Response(response=200,description="Updated",@OA\JsonContent(@OA\Property(property="success",type="boolean",example=true),@OA\Property(property="message",type="string",example="Profil usługodawcy został zaktualizowany."),@OA\Property(property="data",ref="#/components/schemas/VendorProfile"),@OA\Property(property="errors",nullable=true,example=null))),
      *   @OA\Response(response=401,description="Unauthenticated",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")),@OA\Response(response=403,description="Wrong role",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")),@OA\Response(response=404,description="Profile absent",@OA\JsonContent(ref="#/components/schemas/ErrorResponse")),@OA\Response(response=422,description="Validation error",@OA\JsonContent(ref="#/components/schemas/ErrorResponse"))

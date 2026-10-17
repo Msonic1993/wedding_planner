@@ -27,14 +27,19 @@ class WeddingProfileControllerTest extends TestCase
             'wedding_date' => now()->addYear()->toDateString(),
             'budget' => 60000,
             'guest_count' => 80,
-            'location' => 'Warszawa',
+            'country_code' => 'PL',
+            'region_code' => '78',
+            'city_id' => 756135,
+            'avatar_key' => 'amethyst',
             'photo' => UploadedFile::fake()->image('profile.jpg'),
         ], ['Accept' => 'application/json']);
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.first_name', 'Anna')
-            ->assertJsonPath('data.location', 'Warszawa');
+            ->assertJsonPath('data.location', 'Warsaw')
+            ->assertJsonPath('data.country_code', 'PL')
+            ->assertJsonPath('data.avatar_key', null);
 
         $profile = WeddingProfile::query()->where('user_id', $user->id)->firstOrFail();
         Storage::disk('public')->assertExists($profile->photo_path);
@@ -97,6 +102,27 @@ class WeddingProfileControllerTest extends TestCase
         $this->postJson('/api/v1/profile', ['first_name' => 'Anna', 'last_name' => 'Kowalska'])
             ->assertConflict()
             ->assertJsonPath('success', false);
+    }
+
+    public function test_profile_rejects_a_city_from_another_region_and_supports_builtin_avatar(): void
+    {
+        $user = $this->userWithRole('bride');
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/profile', [
+            'first_name' => 'Anna',
+            'last_name' => 'Kowalska',
+            'country_code' => 'PL',
+            'region_code' => '77',
+            'city_id' => 756135,
+            'avatar_key' => 'not-an-avatar',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['city_id', 'avatar_key']);
+
+        $this->postJson('/api/v1/profile', [
+            'first_name' => 'Anna',
+            'last_name' => 'Kowalska',
+            'avatar_key' => 'fern',
+        ])->assertCreated()->assertJsonPath('data.avatar_key', 'fern');
     }
 
     public function test_missing_profile_returns_not_found(): void

@@ -16,7 +16,11 @@ class VendorProfileControllerTest extends TestCase
     {
         $user = $this->vendor();
         Sanctum::actingAs($user);
-        $this->postJson('/api/v1/vendor/profile', ['name' => 'Studio Foto', 'categories' => ['photographer'], 'cities' => ['Warszawa']])->assertCreated()->assertJsonPath('data.name', 'Studio Foto');
+        $this->postJson('/api/v1/vendor/profile', ['name' => 'Studio Foto', 'categories' => ['photographer'], 'country_code' => 'PL', 'region_code' => '78', 'city_ids' => [756135]])
+            ->assertCreated()
+            ->assertJsonPath('data.name', 'Studio Foto')
+            ->assertJsonPath('data.cities.0', 'Warsaw')
+            ->assertJsonPath('data.city_ids.0', 756135);
         $this->patchJson('/api/v1/vendor/profile', ['name' => 'Studio Foto Plus', 'categories' => ['photographer', 'videographer']])->assertOk()->assertJsonPath('data.name', 'Studio Foto Plus');
     }
 
@@ -37,6 +41,19 @@ class VendorProfileControllerTest extends TestCase
     public function test_categories_are_public(): void
     {
         $this->getJson('/api/v1/vendor-categories')->assertOk()->assertJsonPath('success', true)->assertJsonFragment(['photographer']);
+    }
+
+    public function test_vendor_cannot_save_an_invented_city(): void
+    {
+        Sanctum::actingAs($this->vendor());
+
+        $this->postJson('/api/v1/vendor/profile', [
+            'name' => 'Studio Foto',
+            'categories' => ['photographer'],
+            'country_code' => 'PL',
+            'region_code' => '78',
+            'city_ids' => [999999999],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['city_ids']);
     }
 
     private function vendor(): User

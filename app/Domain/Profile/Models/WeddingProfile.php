@@ -16,7 +16,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $budget
  * @property int|null $guest_count
  * @property string|null $location
+ * @property string|null $country_code
+ * @property string|null $region_code
+ * @property int|null $city_id
  * @property string|null $photo_path
+ * @property string|null $avatar_key
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -27,7 +31,11 @@ use Illuminate\Support\Carbon;
     'budget',
     'guest_count',
     'location',
+    'country_code',
+    'region_code',
+    'city_id',
     'photo_path',
+    'avatar_key',
 ])]
 class WeddingProfile extends Model
 {
@@ -44,6 +52,7 @@ class WeddingProfile extends Model
             'wedding_date' => 'date',
             'budget' => 'decimal:2',
             'guest_count' => 'integer',
+            'city_id' => 'integer',
         ];
     }
 }

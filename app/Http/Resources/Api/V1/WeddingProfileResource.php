@@ -23,7 +23,11 @@ class WeddingProfileResource extends JsonResource
             'budget' => $this->budget,
             'guest_count' => $this->guest_count,
             'location' => $this->location,
+            'country_code' => $this->country_code,
+            'region_code' => $this->region_code,
+            'city_id' => $this->city_id,
             'photo_url' => $this->photo_path === null ? null : PublicMediaUrl::for($request, $this->photo_path, $disk),
+            'avatar_key' => $this->avatar_key,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
