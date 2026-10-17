@@ -1,0 +1,110 @@
+name: Deploy Laravel application
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: wedding-planet-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deployment tools
+        run: sudo apt-get update && sudo apt-get install --yes rsync sshpass
+
+      - name: Configure SSH known hosts
+        env:
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          : "${SSH_KNOWN_HOSTS:?Missing SSH_KNOWN_HOSTS secret}"
+          printf '%s\n' "${SSH_KNOWN_HOSTS}" > "${RUNNER_TEMP}/known_hosts"
+          chmod 600 "${RUNNER_TEMP}/known_hosts"
+
+      - name: Upload application files
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -Eeuo pipefail
+          : "${SSH_HOST:?Missing SSH_HOST secret}"
+          : "${SSH_USER:?Missing SSH_USER secret}"
+          : "${SSH_PASSWORD:?Missing SSH_PASSWORD secret}"
+          : "${DEPLOY_PATH:?Missing DEPLOY_PATH secret}"
+
+          SSH_PORT="${SSH_PORT:-22}"
+          SSH_OPTS="-p ${SSH_PORT} -o BatchMode=no -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${RUNNER_TEMP}/known_hosts"
+          SSHPASS="${SSH_PASSWORD}" sshpass -e ssh ${SSH_OPTS} "${SSH_USER}@${SSH_HOST}" \
+            "mkdir -p '${DEPLOY_PATH}'"
+
+          SSHPASS="${SSH_PASSWORD}" rsync -az --delete \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='vendor/' \
+            --exclude='node_modules/' \
+            --exclude='storage/' \
+            --exclude='bootstrap/cache/' \
+            --exclude='.git/' \
+            -e "sshpass -e ssh ${SSH_OPTS}" \
+            ./ "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH%/}/"
+
+      - name: Install dependencies and finalize Laravel deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -Eeuo pipefail
+          : "${SSH_HOST:?Missing SSH_HOST secret}"
+          : "${SSH_USER:?Missing SSH_USER secret}"
+          : "${SSH_PASSWORD:?Missing SSH_PASSWORD secret}"
+          : "${DEPLOY_PATH:?Missing DEPLOY_PATH secret}"
+
+          SSH_PORT="${SSH_PORT:-22}"
+          SSH_OPTS="-p ${SSH_PORT} -o BatchMode=no -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${RUNNER_TEMP}/known_hosts"
+
+          SSHPASS="${SSH_PASSWORD}" sshpass -e ssh ${SSH_OPTS} "${SSH_USER}@${SSH_HOST}" \
+            "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          cd "${DEPLOY_PATH}"
+
+          test -f artisan
+          test -f .env
+
+          composer install \
+            --no-dev \
+            --no-interaction \
+            --prefer-dist \
+            --optimize-autoloader
+
+          trap 'php artisan up || true' EXIT
+          php artisan down --render='errors::503' || true
+          php artisan migrate --force
+          php artisan storage:link --force
+          php artisan optimize:clear
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan queue:restart || true
+
+          mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          chown -R "$(id -un):www-data" storage bootstrap/cache
+          find storage bootstrap/cache -type d -exec chmod 2775 {} +
+          find storage bootstrap/cache -type f -exec chmod 0664 {} +
+
+          php artisan up
+          REMOTE_SCRIPT
