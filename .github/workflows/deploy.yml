@@ -146,6 +146,7 @@ jobs:
           trap 'php artisan up || true' EXIT
           php artisan down --render='errors::503' || true
           php artisan migrate --force
+          php artisan l5-swagger:generate
           php artisan storage:link --force
           php artisan optimize:clear
           php artisan config:cache
