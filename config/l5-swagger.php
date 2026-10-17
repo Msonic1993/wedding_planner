@@ -2,9 +2,6 @@
 
 use L5Swagger\CustomGeneratorInterface;
 use L5Swagger\Generator;
-use OpenApi\Analysers\AttributeAnnotationFactory;
-use OpenApi\Analysers\DocBlockAnnotationFactory;
-use OpenApi\Analysers\ReflectionAnalyser;
 use OpenApi\scan;
 
 return [
@@ -141,10 +138,9 @@ return [
              *
              * @see scan
              */
-            'analyser' => new ReflectionAnalyser([
-                new AttributeAnnotationFactory,
-                new DocBlockAnnotationFactory,
-            ]),
+            // Keep this null so Laravel can serialize the configuration cache.
+            // L5 Swagger creates its default analyser at generation time.
+            'analyser' => null,
 
             /**
              * analysis: defaults to a new \OpenApi\Analysis .

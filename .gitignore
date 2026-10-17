@@ -10,7 +10,10 @@
 /public/storage
 .phpunit.result.cache
 .env
+/known_hosts
 /ai_memory/authentication/known-issues.md
 /ai_memory/archive/context-2026-08-13-runtime.md
 /ai_memory/archive/context-2026-08-13-instructions.md
 /ai_memory/*
+.idea/*
+.idea/claudeCodeTabState.xml
