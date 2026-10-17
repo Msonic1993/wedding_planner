@@ -10,7 +10,9 @@ use OpenApi\Annotations as OA;
  *     version="v1",
  *     description="Versioned REST API for Wedding Planet."
  * )
+ *
  * @OA\Server(url="/", description="Current application server")
+ *
  * @OA\SecurityScheme(
  *     securityScheme="sanctum",
  *     type="http",
@@ -18,6 +20,4 @@ use OpenApi\Annotations as OA;
  *     bearerFormat="Bearer"
  * )
  */
-final class OpenApiDefinition
-{
-}
+final class OpenApiDefinition {}
