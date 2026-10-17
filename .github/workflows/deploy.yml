@@ -82,8 +82,25 @@ jobs:
           set -Eeuo pipefail
           cd "${DEPLOY_PATH}"
 
-          test -f artisan
-          test -f .env
+          if [[ ! -f artisan ]]; then
+            echo '::error::Nie znaleziono artisan w DEPLOY_PATH. Sprawdź DEPLOY_PATH i upload plików.'
+            exit 1
+          fi
+
+          if [[ ! -f .env ]]; then
+            echo '::error::Nie znaleziono .env na VPS. Utwórz /var/www/wedding-planet/.env przed deployem.'
+            exit 1
+          fi
+
+          if ! command -v composer >/dev/null 2>&1; then
+            echo '::error::Composer nie jest zainstalowany na VPS.'
+            exit 1
+          fi
+
+          mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          chown -R "$(id -un):www-data" storage bootstrap/cache
+          find storage bootstrap/cache -type d -exec chmod 2775 {} +
+          find storage bootstrap/cache -type f -exec chmod 0664 {} +
 
           composer install \
             --no-dev \
@@ -100,11 +117,6 @@ jobs:
           php artisan route:cache
           php artisan view:cache
           php artisan queue:restart || true
-
-          mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-          chown -R "$(id -un):www-data" storage bootstrap/cache
-          find storage bootstrap/cache -type d -exec chmod 2775 {} +
-          find storage bootstrap/cache -type f -exec chmod 0664 {} +
 
           php artisan up
           REMOTE_SCRIPT
