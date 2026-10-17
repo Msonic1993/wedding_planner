@@ -12,7 +12,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  tests:
+    name: Tests and static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, curl, dom, gd, intl, mbstring, pdo_mysql, pdo_sqlite, redis, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHPUnit
+        run: php artisan test
+
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --memory-limit=1G
+
   deploy:
+    needs: tests
     runs-on: ubuntu-latest
 
     steps:
