@@ -133,9 +133,6 @@ jobs:
           fi
 
           mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-          chown -R "$(id -un):www-data" storage bootstrap/cache
-          find storage bootstrap/cache -type d -exec chmod 2775 {} +
-          find storage bootstrap/cache -type f -exec chmod 0664 {} +
 
           composer install \
             --no-dev \
