@@ -20,7 +20,10 @@ use App\Application\Vendor\Services\EloquentVendorReviewService;
 use App\Infrastructure\Location\GeoNamesJsonLocationCatalog;
 use App\Infrastructure\Translation\YamlFileLoader;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -50,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
             [lang_path(), base_path('languages')],
         ));
 
+        RateLimiter::for('chat-messages', fn (Request $request): Limit => $this->chatMessageLimit($request));
+
         ResetPassword::createUrlUsing(
             fn (object $notifiable, string $token): string => sprintf(
                 '%s/reset-password?token=%s&email=%s',
@@ -58,5 +63,14 @@ class AppServiceProvider extends ServiceProvider
                 urlencode((string) $notifiable->getEmailForPasswordReset()),
             ),
         );
+    }
+
+    /**
+     * Rate limit for POST /chat/inquiries/{inquiry}/messages.
+     * Every message costs a DB transaction and a broadcast to several channels.
+     */
+    private function chatMessageLimit(Request $request): Limit
+    {
+        return Limit::perMinute(30)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
     }
 }

@@ -13,8 +13,11 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $couple_user_id
+ * @property int $vendor_profile_id
  * @property Carbon|null $requested_date
- * @property int|null $messages_count
+ * @property int $messages_count
+ * @property int|null $last_message_id
+ * @property Carbon|null $last_message_at
  * @property VendorProfile $vendorProfile
  * @property User $couple
  * @property Carbon|null $created_at
@@ -43,6 +46,11 @@ class VendorInquiry extends Model
 
     protected function casts(): array
     {
-        return ['requested_date' => 'date'];
+        return [
+            'requested_date' => 'date',
+            'messages_count' => 'integer',
+            'last_message_id' => 'integer',
+            'last_message_at' => 'datetime',
+        ];
     }
 }

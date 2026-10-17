@@ -6,10 +6,10 @@
         <entry key="0">
           <value>
             <TabSessionState>
-              <option name="provider" value="codex" />
-              <option name="sessionId" value="01a149b8-87da-7632-a5d5-cad20c9324b3" />
+              <option name="provider" value="claude" />
+              <option name="sessionId" value="ca7770a4-305a-49e7-a702-89a6dea98c73" />
               <option name="cwd" value="D:\PhpstormProjects\wedding_planner" />
-              <option name="model" value="gpt-5.6-luna" />
+              <option name="model" value="claude-opus-5" />
               <option name="permissionMode" value="bypassPermissions" />
             </TabSessionState>
           </value>

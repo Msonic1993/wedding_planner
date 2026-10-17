@@ -2,6 +2,7 @@
 
 namespace App\Application\Chat\Contracts;
 
+use App\Application\Chat\Data\ChatMessageWindow;
 use App\Domain\Chat\Models\ChatMessage;
 use App\Domain\Chat\Models\VendorInquiry;
 use App\Domain\Vendor\Models\VendorProfile;
@@ -18,8 +19,13 @@ interface InquiryChatService
 
     public function getInquiry(User $user, VendorInquiry $inquiry): VendorInquiry;
 
+    public function isParticipant(User $user, VendorInquiry $inquiry): bool;
+
     /** @return LengthAwarePaginator<int, ChatMessage> */
     public function listMessages(User $user, VendorInquiry $inquiry, int $perPage): LengthAwarePaginator;
+
+    /** Keyset window: messages older than $beforeId, or newer than $afterId when $beforeId is null. */
+    public function listMessagesWindow(User $user, VendorInquiry $inquiry, ?int $beforeId, ?int $afterId, int $perPage): ChatMessageWindow;
 
     /** @param array{body: string} $attributes */
     public function sendMessage(User $user, VendorInquiry $inquiry, array $attributes): ChatMessage;

@@ -10,6 +10,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property int $vendor_inquiry_id
+ * @property int $sender_id
  * @property string $body
  * @property User $sender
  * @property Carbon|null $created_at

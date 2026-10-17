@@ -14,6 +14,56 @@ services:
     networks:
       - wedding-planet
 
+  reverb:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html:delegated
+      - composer-vendor:/var/www/html/vendor
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    ports:
+      - "${REVERB_PUBLIC_PORT:-8083}:8080"
+    depends_on:
+      - redis
+    networks:
+      - wedding-planet
+
+  # A dedicated worker per queue: with block_for, a worker listening on several queues
+  # would block on an empty one and delay chat broadcasts by up to REDIS_QUEUE_BLOCK_FOR seconds.
+  queue-broadcasts:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html:delegated
+      - composer-vendor:/var/www/html/vendor
+    command: ["php", "artisan", "queue:work", "redis", "--queue=broadcasts", "--tries=3"]
+    depends_on:
+      - redis
+    networks:
+      - wedding-planet
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html:delegated
+      - composer-vendor:/var/www/html/vendor
+    command: ["php", "artisan", "queue:work", "redis", "--queue=default", "--tries=3"]
+    depends_on:
+      - redis
+      - mysql
+    networks:
+      - wedding-planet
+
   nginx:
     image: nginx:1.28-alpine
     restart: unless-stopped

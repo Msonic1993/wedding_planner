@@ -6,6 +6,7 @@ use App\Application\Chat\Contracts\InquiryChatService;
 use App\Domain\Chat\Models\VendorInquiry;
 use App\Domain\Vendor\Models\VendorProfile;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Chat\ChatMessagesRequest;
 use App\Http\Requests\Api\V1\Chat\ChatPaginationRequest;
 use App\Http\Requests\Api\V1\Chat\CreateInquiryRequest;
 use App\Http\Requests\Api\V1\Chat\SendChatMessageRequest;
@@ -109,22 +110,44 @@ class InquiryChatController extends Controller
      *     tags={"Inquiries and chat"},
      *     security={{"sanctum":{}}},
      *     summary="Read messages from an inquiry thread",
-     *     description="Only the couple who created the inquiry and the owner of the addressed vendor profile may read the thread. Page 1 contains the newest message window; items inside every page are returned oldest first. Fetch subsequent pages to prepend older history.",
+     *     description="Only the couple who created the inquiry and the owner of the addressed vendor profile may read the thread. Items are always returned oldest first. Two modes are supported. Page mode (default, `page`): page 1 contains the newest message window and the response contains `pagination` (ChatMessageList). Cursor mode (`before_id` or `after_id`): keyset pagination without COUNT, recommended under load; the response contains `cursor` (ChatMessageCursorList). Use `before_id` = oldest loaded message ID to prepend older history, and `after_id` = newest known message ID to catch up after a WebSocket reconnect or as a polling fallback; repeat `after_id` requests while `cursor.has_more` is true. New messages are pushed in real time as `chat.message.sent` on private channels `chat.inquiry.{inquiry}` and `chat.user.{userId}` (authorize via POST /api/v1/broadcasting/auth); clients must de-duplicate messages by `id`.",
      *
      *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID returned by GET /chat/inquiries.", @OA\Schema(type="integer", format="int64", example=31)),
-     *     @OA\Parameter(name="page", in="query", description="Page number; defaults to 1.", @OA\Schema(type="integer", minimum=1, default=1, example=1)),
+     *     @OA\Parameter(name="page", in="query", description="Page mode only: page number; defaults to 1. Cannot be combined with before_id or after_id.", @OA\Schema(type="integer", minimum=1, default=1, example=1)),
+     *     @OA\Parameter(name="before_id", in="query", description="Cursor mode: return the newest messages with an ID lower than this value. Cannot be combined with page or after_id.", @OA\Schema(type="integer", format="int64", minimum=1, example=120)),
+     *     @OA\Parameter(name="after_id", in="query", description="Cursor mode: return the oldest messages with an ID greater than this value. Cannot be combined with page or before_id.", @OA\Schema(type="integer", format="int64", minimum=0, example=145)),
      *     @OA\Parameter(name="per_page", in="query", description="Messages per page; default 50, minimum 1, maximum 100.", @OA\Schema(type="integer", minimum=1, maximum=100, default=50, example=50)),
      *
-     *     @OA\Response(response=200, description="Paginated messages sorted oldest first.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", ref="#/components/schemas/ChatMessageList"), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=200, description="Messages sorted oldest first. ChatMessageList in page mode, ChatMessageCursorList in cursor mode.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", oneOf={@OA\Schema(ref="#/components/schemas/ChatMessageList"), @OA\Schema(ref="#/components/schemas/ChatMessageCursorList")}), @OA\Property(property="errors", nullable=true, example=null))),
      *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
-     *     @OA\Response(response=422, description="Invalid per_page query parameter.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     *     @OA\Response(response=422, description="Invalid page, per_page, before_id or after_id, or page and cursor parameters were combined.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
      * )
      */
-    public function messages(ChatPaginationRequest $request, VendorInquiry $inquiry): JsonResponse
+    public function messages(ChatMessagesRequest $request, VendorInquiry $inquiry): JsonResponse
     {
-        $messages = $this->chat->listMessages($request->user(), $inquiry, $request->integer('per_page', 50));
+        $perPage = $request->integer('per_page', 50);
+
+        if ($request->usesCursor()) {
+            $window = $this->chat->listMessagesWindow(
+                $request->user(),
+                $inquiry,
+                $request->filled('before_id') ? $request->integer('before_id') : null,
+                $request->filled('after_id') ? $request->integer('after_id') : null,
+                $perPage,
+            );
+
+            return $this->success([
+                'items' => ChatMessageResource::collection($window->messages),
+                'cursor' => [
+                    'per_page' => $perPage,
+                    'has_more' => $window->hasMore,
+                ],
+            ]);
+        }
+
+        $messages = $this->chat->listMessages($request->user(), $inquiry, $perPage);
         $orderedMessages = collect($messages->items())->sortBy('id')->values();
 
         return $this->success([
@@ -144,7 +167,7 @@ class InquiryChatController extends Controller
      *     tags={"Inquiries and chat"},
      *     security={{"sanctum":{}}},
      *     summary="Send a message in an inquiry thread",
-     *     description="Only a conversation participant can send a message. The sender is always derived from the Sanctum token; do not send sender_id. This endpoint is used by both the couple and the vendor to continue the internal chat.",
+     *     description="Only a conversation participant can send a message. The sender is always derived from the Sanctum token; do not send sender_id. This endpoint is used by both the couple and the vendor to continue the internal chat. After commit the message is broadcast as `chat.message.sent` to the other participant's sockets; send the `X-Socket-ID` header to exclude the sender's own connection. Limited to 30 messages per minute per user.",
      *
      *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID.", @OA\Schema(type="integer", format="int64", example=31)),
      *
@@ -154,7 +177,8 @@ class InquiryChatController extends Controller
      *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
-     *     @OA\Response(response=422, description="body is absent or exceeds 5000 characters.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     *     @OA\Response(response=422, description="body is absent or exceeds 5000 characters.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=429, description="Message rate limit exceeded; retry after the number of seconds in the Retry-After header.", @OA\JsonContent(@OA\Property(property="message", type="string", example="Too Many Attempts.")))
      * )
      */
     public function send(SendChatMessageRequest $request, VendorInquiry $inquiry): JsonResponse

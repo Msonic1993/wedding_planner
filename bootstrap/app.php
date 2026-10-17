@@ -24,7 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api/v1', 'middleware' => ['auth:sanctum']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
+        // TLS terminates at Cloudflare / the mikr.us proxy; trust X-Forwarded-* to keep https URLs and signatures valid.
+        $middleware->trustProxies(at: '*');
         $middleware->alias(['role' => RoleMiddleware::class]);
         $middleware->redirectGuestsTo(fn (): null => null);
     })

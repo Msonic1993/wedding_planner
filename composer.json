@@ -27,6 +27,7 @@
     "doctrine/annotations": "^2.0",
     "laravel/framework": "^13.0",
     "laravel/horizon": "^5.48",
+    "laravel/reverb": "^1.12",
     "laravel/sanctum": "^4.0",
     "laravel/tinker": "^3.0",
     "spatie/laravel-permission": "^8.0"

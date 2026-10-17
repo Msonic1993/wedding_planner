@@ -36,7 +36,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('inquiries', 'index');
         Route::get('inquiries/{inquiry}', 'show')->whereNumber('inquiry');
         Route::get('inquiries/{inquiry}/messages', 'messages');
-        Route::post('inquiries/{inquiry}/messages', 'send');
+        Route::post('inquiries/{inquiry}/messages', 'send')->middleware('throttle:chat-messages');
     });
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->group(function (): void {
         Route::get('vendors/{vendor}/review', [VendorReviewController::class, 'show']);

@@ -22,7 +22,8 @@ class VendorInquiryResource extends JsonResource
                 'name' => $this->couple->name,
             ],
             'requested_date' => $this->requested_date?->toDateString(),
-            'messages_count' => isset($this->messages_count) ? (int) $this->messages_count : null,
+            'messages_count' => $this->messages_count,
+            'last_message_at' => $this->last_message_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
