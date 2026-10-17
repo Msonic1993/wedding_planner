@@ -15,8 +15,7 @@ use OpenApi\Annotations as OA;
 class WeddingProfileController extends Controller
 {
     public function __construct(private readonly WeddingProfileService $profiles)
-    {
-    }
+    {}
 
     /** @OA\Get(path="/api/v1/profile", tags={"Wedding profile"}, security={{"sanctum":{}}}, summary="Get current user's wedding profile", description="Only Bride or Groom. Returns the individual planning profile.", @OA\Response(response=200,description="Profile",@OA\JsonContent(required={"success","message","data","errors"},@OA\Property(property="success",type="boolean",example=true),@OA\Property(property="message",nullable=true),@OA\Property(property="data",ref="#/components/schemas/WeddingProfile"),@OA\Property(property="errors",nullable=true))),@OA\Response(response=401,description="Unauthenticated",ref="#/components/schemas/ErrorResponse"),@OA\Response(response=403,description="Wrong role",ref="#/components/schemas/ErrorResponse"),@OA\Response(response=404,description="Profile missing",ref="#/components/schemas/ErrorResponse")) */
     public function show(): JsonResponse
