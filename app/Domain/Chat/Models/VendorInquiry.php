@@ -18,6 +18,10 @@ use Illuminate\Support\Carbon;
  * @property int $messages_count
  * @property int|null $last_message_id
  * @property Carbon|null $last_message_at
+ * @property int|null $couple_last_read_message_id
+ * @property int|null $vendor_last_read_message_id
+ * @property int $couple_unread_count
+ * @property int $vendor_unread_count
  * @property VendorProfile $vendorProfile
  * @property User $couple
  * @property Carbon|null $created_at
@@ -44,6 +48,22 @@ class VendorInquiry extends Model
         return $this->hasMany(ChatMessage::class);
     }
 
+    /**
+     * Column prefix holding the read state of a participant. A thread has exactly
+     * two participants, so the state lives on the thread row instead of a pivot table.
+     *
+     * @return 'couple'|'vendor'
+     */
+    public function participantSide(int $userId): string
+    {
+        return $userId === $this->couple_user_id ? 'couple' : 'vendor';
+    }
+
+    public function unreadCountFor(int $userId): int
+    {
+        return $this->participantSide($userId) === 'couple' ? $this->couple_unread_count : $this->vendor_unread_count;
+    }
+
     protected function casts(): array
     {
         return [
@@ -51,6 +71,10 @@ class VendorInquiry extends Model
             'messages_count' => 'integer',
             'last_message_id' => 'integer',
             'last_message_at' => 'datetime',
+            'couple_last_read_message_id' => 'integer',
+            'vendor_last_read_message_id' => 'integer',
+            'couple_unread_count' => 'integer',
+            'vendor_unread_count' => 'integer',
         ];
     }
 }

@@ -24,6 +24,7 @@ class VendorInquiryResource extends JsonResource
             'requested_date' => $this->requested_date?->toDateString(),
             'messages_count' => $this->messages_count,
             'last_message_at' => $this->last_message_at?->toISOString(),
+            'unread_count' => $this->unreadCountFor((int) $request->user()?->getAuthIdentifier()),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

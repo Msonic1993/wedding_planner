@@ -4,13 +4,17 @@ namespace App\Application\Chat\Services;
 
 use App\Application\Chat\Contracts\InquiryChatService;
 use App\Application\Chat\Data\ChatMessageWindow;
+use App\Application\Chat\Data\ChatReadState;
 use App\Application\Chat\Events\ChatMessageSent;
+use App\Application\Chat\Events\ChatUnreadUpdated;
+use App\Application\Chat\Jobs\SendChatMessagePush;
 use App\Domain\Chat\Exceptions\InquiryAlreadyExistsException;
 use App\Domain\Chat\Models\ChatMessage;
 use App\Domain\Chat\Models\VendorInquiry;
 use App\Domain\Vendor\Models\VendorProfile;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Bus\Dispatcher as BusDispatcher;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -18,7 +22,10 @@ use Illuminate\Support\Facades\DB;
 
 class EloquentInquiryChatService implements InquiryChatService
 {
-    public function __construct(private readonly Dispatcher $events) {}
+    public function __construct(
+        private readonly Dispatcher $events,
+        private readonly BusDispatcher $bus,
+    ) {}
 
     public function createInquiry(User $couple, VendorProfile $vendor, array $attributes): VendorInquiry
     {
@@ -40,9 +47,10 @@ class EloquentInquiryChatService implements InquiryChatService
             throw new InquiryAlreadyExistsException;
         }
 
-        $this->broadcastMessage($inquiry, $message);
+        $inquiry->load(['vendorProfile', 'couple']);
+        $this->notifyParticipants($inquiry, $message);
 
-        return $inquiry->load(['vendorProfile', 'couple']);
+        return $inquiry;
     }
 
     public function listInquiries(User $user, int $perPage): LengthAwarePaginator
@@ -108,37 +116,114 @@ class EloquentInquiryChatService implements InquiryChatService
 
         $message = DB::transaction(fn (): ChatMessage => $this->appendMessage($inquiry, $user, $attributes['body']));
 
-        $this->broadcastMessage($inquiry, $message);
+        $this->notifyParticipants($inquiry, $message);
 
         return $message;
     }
 
+    public function markAsRead(User $user, VendorInquiry $inquiry, int $lastReadMessageId): ChatReadState
+    {
+        $this->ensureParticipant($user, $inquiry);
+
+        $side = $inquiry->participantSide($user->id);
+        $markerColumn = "{$side}_last_read_message_id";
+        $countColumn = "{$side}_unread_count";
+
+        [$unreadCount, $changed] = DB::transaction(function () use ($inquiry, $user, $lastReadMessageId, $markerColumn, $countColumn): array {
+            $current = VendorInquiry::query()->whereKey($inquiry->id)->lockForUpdate()->firstOrFail(['id', $markerColumn, $countColumn]);
+
+            // Markers only move forward, so a late request from another device cannot bring badges back.
+            if ($lastReadMessageId <= (int) $current->getAttribute($markerColumn)) {
+                return [(int) $current->getAttribute($countColumn), false];
+            }
+
+            $unreadCount = $inquiry->messages()
+                ->where('id', '>', $lastReadMessageId)
+                ->where('sender_id', '!=', $user->id)
+                ->count();
+
+            $inquiry->forceFill([$markerColumn => $lastReadMessageId, $countColumn => $unreadCount])->save();
+
+            return [$unreadCount, true];
+        });
+
+        $state = new ChatReadState($inquiry->id, $unreadCount, $this->unreadTotalFor($user->id, $side));
+
+        if ($changed) {
+            // Other devices of the same user refresh their badges; the calling device already has the response.
+            $event = new ChatUnreadUpdated($user->id, $state->inquiryId, $state->unreadCount, $state->total);
+            $event->dontBroadcastToCurrentUser();
+            $this->events->dispatch($event);
+        }
+
+        return $state;
+    }
+
+    public function unreadTotal(User $user): int
+    {
+        return $this->unreadTotalFor($user->id, $user->hasRole('vendor') ? 'vendor' : 'couple');
+    }
+
     private function appendMessage(VendorInquiry $inquiry, User $sender, string $body): ChatMessage
     {
-        // The row lock serializes writers of one thread, so the counter and last message id
+        // The row lock serializes writers of one thread, so the counters and last message id
         // stay consistent under concurrent sends; other threads are not blocked.
-        $current = VendorInquiry::query()->whereKey($inquiry->id)->lockForUpdate()->firstOrFail(['id', 'messages_count']);
+        $current = VendorInquiry::query()->whereKey($inquiry->id)->lockForUpdate()
+            ->firstOrFail(['id', 'messages_count', 'couple_unread_count', 'vendor_unread_count']);
 
         $message = new ChatMessage(['body' => $body]);
         $message->inquiry()->associate($inquiry);
         $message->sender()->associate($sender);
         $message->save();
 
+        $senderSide = $inquiry->participantSide($sender->id);
+        $recipientSide = $senderSide === 'couple' ? 'vendor' : 'couple';
+
+        // Replying means the sender has seen the thread, so their marker moves to their own message.
         $inquiry->forceFill([
             'messages_count' => $current->messages_count + 1,
             'last_message_id' => $message->id,
             'last_message_at' => $message->created_at,
+            "{$senderSide}_last_read_message_id" => $message->id,
+            "{$senderSide}_unread_count" => 0,
+            "{$recipientSide}_unread_count" => (int) $current->getAttribute("{$recipientSide}_unread_count") + 1,
         ])->save();
 
         return $message;
     }
 
-    private function broadcastMessage(VendorInquiry $inquiry, ChatMessage $message): void
+    private function notifyParticipants(VendorInquiry $inquiry, ChatMessage $message): void
     {
         $event = ChatMessageSent::fromMessage($inquiry, $message);
         $event->dontBroadcastToCurrentUser();
-
         $this->events->dispatch($event);
+
+        $recipientSide = $inquiry->participantSide($message->sender_id) === 'couple' ? 'vendor' : 'couple';
+        $recipientId = $recipientSide === 'couple' ? $inquiry->couple_user_id : $inquiry->vendorProfile->user_id;
+        $unreadCount = $inquiry->unreadCountFor($recipientId);
+        $total = $this->unreadTotalFor($recipientId, $recipientSide);
+
+        $this->events->dispatch(new ChatUnreadUpdated($recipientId, $inquiry->id, $unreadCount, $total));
+        $this->bus->dispatch(new SendChatMessagePush(
+            $recipientId,
+            $inquiry->id,
+            $message->id,
+            $message->sender->name,
+            $message->body,
+            $total,
+        ));
+    }
+
+    /** @param 'couple'|'vendor' $side */
+    private function unreadTotalFor(int $userId, string $side): int
+    {
+        if ($side === 'couple') {
+            return (int) VendorInquiry::query()->where('couple_user_id', $userId)->sum('couple_unread_count');
+        }
+
+        return (int) VendorInquiry::query()
+            ->whereIn('vendor_profile_id', VendorProfile::query()->select('id')->where('user_id', $userId))
+            ->sum('vendor_unread_count');
     }
 
     private function ensureParticipant(User $user, VendorInquiry $inquiry): void

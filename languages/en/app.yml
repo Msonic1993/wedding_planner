@@ -24,6 +24,9 @@ chat:
   inquiry_created: "Inquiry has been created."
   inquiry_already_exists: "You already have an inquiry with this vendor."
   message_sent: "Message has been sent."
+device:
+  registered: "Device has been registered."
+  removed: "Device has been removed."
 budget:
   item_created: "Budget item has been created."
   item_updated: "Budget item has been updated."

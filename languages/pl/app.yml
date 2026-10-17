@@ -47,6 +47,9 @@ chat:
   inquiry_created: "Zapytanie zostało utworzone."
   inquiry_already_exists: "Masz już zapytanie do tego usługodawcy."
   message_sent: "Wiadomość została wysłana."
+device:
+  registered: "Urządzenie zostało zarejestrowane."
+  removed: "Urządzenie zostało usunięte."
 budget:
   item_created: "Pozycja budżetu została utworzona."
   item_updated: "Pozycja budżetu została zaktualizowana."

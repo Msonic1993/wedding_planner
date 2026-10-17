@@ -3,6 +3,7 @@
 namespace App\Application\Chat\Contracts;
 
 use App\Application\Chat\Data\ChatMessageWindow;
+use App\Application\Chat\Data\ChatReadState;
 use App\Domain\Chat\Models\ChatMessage;
 use App\Domain\Chat\Models\VendorInquiry;
 use App\Domain\Vendor\Models\VendorProfile;
@@ -29,4 +30,10 @@ interface InquiryChatService
 
     /** @param array{body: string} $attributes */
     public function sendMessage(User $user, VendorInquiry $inquiry, array $attributes): ChatMessage;
+
+    /** Moves the user's read marker forward to $lastReadMessageId; older markers are ignored. */
+    public function markAsRead(User $user, VendorInquiry $inquiry, int $lastReadMessageId): ChatReadState;
+
+    /** Sum of unread messages across all threads of the user. */
+    public function unreadTotal(User $user): int;
 }

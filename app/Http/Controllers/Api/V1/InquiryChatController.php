@@ -9,11 +9,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Chat\ChatMessagesRequest;
 use App\Http\Requests\Api\V1\Chat\ChatPaginationRequest;
 use App\Http\Requests\Api\V1\Chat\CreateInquiryRequest;
+use App\Http\Requests\Api\V1\Chat\MarkChatReadRequest;
 use App\Http\Requests\Api\V1\Chat\SendChatMessageRequest;
 use App\Http\Resources\Api\V1\ChatMessageResource;
 use App\Http\Resources\Api\V1\VendorInquiryResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use OpenApi\Annotations as OA;
 
@@ -186,5 +188,56 @@ class InquiryChatController extends Controller
         $message = $this->chat->sendMessage($request->user(), $inquiry, $request->validated());
 
         return $this->success(new ChatMessageResource($message), __('app.chat.message_sent'), Response::HTTP_CREATED);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/chat/inquiries/{inquiry}/read",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="Mark a thread as read up to a message",
+     *     description="Moves the caller's read marker to last_read_message_id (normally the newest message visible on screen). Markers only move forward: an older ID is accepted but changes nothing. unread_count counts the other participant's messages after the marker. Other devices of the caller receive `chat.unread.updated` on `chat.user.{userId}`; send `X-Socket-ID` to exclude the calling connection. Sending a message marks the thread as read for the sender automatically.",
+     *
+     *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID.", @OA\Schema(type="integer", format="int64", example=31)),
+     *
+     *     @OA\RequestBody(required=true, @OA\JsonContent(required={"last_read_message_id"}, @OA\Property(property="last_read_message_id", type="integer", format="int64", minimum=1, example=145, description="ID of a message belonging to this thread."))),
+     *
+     *     @OA\Response(response=200, description="Current read state.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", ref="#/components/schemas/ChatReadState"), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=422, description="last_read_message_id is absent, not an integer, or does not belong to this thread.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function read(MarkChatReadRequest $request, VendorInquiry $inquiry): JsonResponse
+    {
+        $state = $this->chat->markAsRead($request->user(), $inquiry, $request->integer('last_read_message_id'));
+
+        return $this->success([
+            'inquiry_id' => $state->inquiryId,
+            'unread_count' => $state->unreadCount,
+            'total' => $state->total,
+        ]);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/chat/unread-count",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="Total number of unread chat messages",
+     *     description="Sum of unread messages across all threads of the caller; use it for the tab and app icon badge on start and when the app returns to foreground. Live changes arrive as `chat.unread.updated` with the same `total`.",
+     *
+     *     @OA\Response(response=200, description="Unread total.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", type="object", required={"total"}, @OA\Property(property="total", type="integer", minimum=0, example=3)), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user has none of Bride, Groom, Vendor roles.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->success(['total' => $this->chat->unreadTotal($user)]);
     }
 }

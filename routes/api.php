@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\InquiryChatController;
 use App\Http\Controllers\Api\V1\LocationController;
 use App\Http\Controllers\Api\V1\MarketplaceController;
+use App\Http\Controllers\Api\V1\PushDeviceController;
 use App\Http\Controllers\Api\V1\VendorProfileController;
 use App\Http\Controllers\Api\V1\VendorReviewController;
 use App\Http\Controllers\Api\V1\WeddingProfileController;
@@ -37,6 +38,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('inquiries/{inquiry}', 'show')->whereNumber('inquiry');
         Route::get('inquiries/{inquiry}/messages', 'messages');
         Route::post('inquiries/{inquiry}/messages', 'send')->middleware('throttle:chat-messages');
+        Route::post('inquiries/{inquiry}/read', 'read');
+        Route::get('unread-count', 'unreadCount');
+    });
+    Route::middleware(['auth:sanctum', 'role:bride|groom|vendor'])->prefix('devices')->controller(PushDeviceController::class)->group(function (): void {
+        Route::post('/', 'store');
+        Route::delete('{token}', 'destroy')->where('token', '[^/]+');
     });
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->group(function (): void {
         Route::get('vendors/{vendor}/review', [VendorReviewController::class, 'show']);
