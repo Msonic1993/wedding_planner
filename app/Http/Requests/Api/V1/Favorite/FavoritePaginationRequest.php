@@ -13,6 +13,9 @@ class FavoritePaginationRequest extends ApiRequest
 
     public function rules(): array
     {
-        return ['per_page' => ['nullable', 'integer', 'min:1', 'max:50']];
+        return [
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ];
     }
 }

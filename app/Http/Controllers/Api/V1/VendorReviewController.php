@@ -16,6 +16,27 @@ class VendorReviewController extends Controller
     public function __construct(private readonly VendorReviewService $reviews) {}
 
     /**
+     * @OA\Get(
+     *     path="/api/v1/vendors/{vendor}/review",
+     *     tags={"Vendor reviews"},
+     *     security={{"sanctum":{}}},
+     *     summary="Get own review for a vendor",
+     *     description="Returns only the review authored by the authenticated Bride or Groom for the selected vendor. It never exposes another user's review.",
+     *
+     *     @OA\Parameter(name="vendor", in="path", required=true, description="Vendor profile ID.", @OA\Schema(type="integer", format="int64", example=42)),
+     *
+     *     @OA\Response(response=200, description="Own review.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", ref="#/components/schemas/VendorReview"), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Account does not have Bride or Groom role.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=404, description="Vendor profile or own review does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function show(VendorProfile $vendor): JsonResponse
+    {
+        return $this->success(new VendorReviewResource($this->reviews->findOwn(request()->user(), $vendor)));
+    }
+
+    /**
      * @OA\Post(
      *     path="/api/v1/vendors/{vendor}/review",
      *     tags={"Vendor reviews"},

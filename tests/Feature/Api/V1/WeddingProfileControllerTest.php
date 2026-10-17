@@ -42,7 +42,7 @@ class WeddingProfileControllerTest extends TestCase
         $this->getJson('/api/v1/profile')
             ->assertOk()
             ->assertJsonPath('data.id', $profile->id)
-            ->assertJsonPath('data.photo_url', Storage::disk('public')->url($profile->photo_path));
+            ->assertJsonPath('data.photo_url', 'http://localhost:8081/storage/'.$profile->photo_path);
     }
 
     public function test_groom_can_update_own_profile(): void

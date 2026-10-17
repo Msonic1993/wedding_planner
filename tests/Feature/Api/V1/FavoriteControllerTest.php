@@ -89,6 +89,9 @@ class FavoriteControllerTest extends TestCase
         $this->getJson('/api/v1/favorites/vendors?per_page=51')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['per_page']);
+        $this->getJson('/api/v1/favorites/vendors?page=0')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['page']);
         $this->putJson('/api/v1/favorites/vendors/999999')->assertNotFound();
         $this->deleteJson('/api/v1/favorites/vendors/999999')->assertNotFound();
     }

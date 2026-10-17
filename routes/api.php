@@ -28,10 +28,12 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->post('vendors/{vendor}/inquiries', [InquiryChatController::class, 'store']);
     Route::middleware(['auth:sanctum', 'role:bride|groom|vendor'])->prefix('chat')->controller(InquiryChatController::class)->group(function (): void {
         Route::get('inquiries', 'index');
+        Route::get('inquiries/{inquiry}', 'show')->whereNumber('inquiry');
         Route::get('inquiries/{inquiry}/messages', 'messages');
         Route::post('inquiries/{inquiry}/messages', 'send');
     });
     Route::middleware(['auth:sanctum', 'role:bride|groom'])->group(function (): void {
+        Route::get('vendors/{vendor}/review', [VendorReviewController::class, 'show']);
         Route::post('vendors/{vendor}/review', [VendorReviewController::class, 'store']);
         Route::patch('vendors/{vendor}/review', [VendorReviewController::class, 'update']);
         Route::delete('vendors/{vendor}/review', [VendorReviewController::class, 'destroy']);

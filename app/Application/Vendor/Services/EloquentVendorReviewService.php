@@ -10,6 +10,11 @@ use App\Models\User;
 
 class EloquentVendorReviewService implements VendorReviewService
 {
+    public function findOwn(User $user, VendorProfile $vendor): VendorReview
+    {
+        return $vendor->reviews()->where('user_id', $user->id)->firstOrFail();
+    }
+
     public function create(User $user, VendorProfile $vendor, array $attributes): VendorReview
     {
         if ($vendor->reviews()->where('user_id', $user->id)->exists()) {
@@ -26,7 +31,7 @@ class EloquentVendorReviewService implements VendorReviewService
 
     public function update(User $user, VendorProfile $vendor, array $attributes): VendorReview
     {
-        $review = $this->findOwnReview($user, $vendor);
+        $review = $this->findOwn($user, $vendor);
         $review->update($attributes);
 
         return $review->refresh();
@@ -34,11 +39,6 @@ class EloquentVendorReviewService implements VendorReviewService
 
     public function delete(User $user, VendorProfile $vendor): void
     {
-        $this->findOwnReview($user, $vendor)->delete();
-    }
-
-    private function findOwnReview(User $user, VendorProfile $vendor): VendorReview
-    {
-        return $vendor->reviews()->where('user_id', $user->id)->firstOrFail();
+        $this->findOwn($user, $vendor)->delete();
     }
 }

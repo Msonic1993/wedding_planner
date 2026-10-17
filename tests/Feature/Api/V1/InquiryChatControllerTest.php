@@ -44,10 +44,15 @@ class InquiryChatControllerTest extends TestCase
             ->assertJsonPath('data.sender.id', $vendorUser->id);
 
         Sanctum::actingAs($bride);
+        $this->getJson("/api/v1/chat/inquiries/{$inquiry->id}/messages?per_page=1")
+            ->assertOk()
+            ->assertJsonPath('data.items.0.body', 'Yes, the date is available.')
+            ->assertJsonPath('data.pagination.last_page', 2);
         $this->getJson("/api/v1/chat/inquiries/{$inquiry->id}/messages")
             ->assertOk()
-            ->assertJsonPath('data.0.body', 'Are you available on 12 June 2027?')
-            ->assertJsonPath('data.1.body', 'Yes, the date is available.');
+            ->assertJsonPath('data.items.0.body', 'Are you available on 12 June 2027?')
+            ->assertJsonPath('data.items.1.body', 'Yes, the date is available.')
+            ->assertJsonPath('data.pagination.total', 2);
     }
 
     public function test_chat_lists_only_current_users_threads_and_denies_other_users(): void
@@ -60,12 +65,38 @@ class InquiryChatControllerTest extends TestCase
 
         Sanctum::actingAs($bride);
         $this->getJson('/api/v1/chat/inquiries')->assertOk()
-            ->assertJsonPath('data.0.id', $inquiry->id)
-            ->assertJsonCount(1, 'data');
+            ->assertJsonPath('data.items.0.id', $inquiry->id)
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.pagination.total', 1);
         $this->getJson("/api/v1/chat/inquiries/{$otherInquiry->id}/messages")->assertForbidden();
 
         Sanctum::actingAs($vendorUser);
-        $this->getJson('/api/v1/chat/inquiries')->assertOk()->assertJsonCount(2, 'data');
+        $this->getJson('/api/v1/chat/inquiries')->assertOk()->assertJsonCount(2, 'data.items');
+    }
+
+    public function test_participants_can_open_thread_context_but_other_users_cannot(): void
+    {
+        [$vendorUser, $vendorProfile] = $this->vendor();
+        $bride = $this->userWithRole('bride');
+        $otherBride = $this->userWithRole('bride');
+        $inquiry = $this->createInquiry($bride, $vendorProfile);
+
+        $this->getJson("/api/v1/chat/inquiries/{$inquiry->id}")->assertUnauthorized();
+
+        Sanctum::actingAs($bride);
+        $this->getJson("/api/v1/chat/inquiries/{$inquiry->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $inquiry->id)
+            ->assertJsonPath('data.vendor.id', $vendorProfile->id);
+
+        Sanctum::actingAs($vendorUser);
+        $this->getJson("/api/v1/chat/inquiries/{$inquiry->id}")
+            ->assertOk()
+            ->assertJsonPath('data.couple.id', $bride->id);
+
+        Sanctum::actingAs($otherBride);
+        $this->getJson("/api/v1/chat/inquiries/{$inquiry->id}")->assertForbidden();
+        $this->getJson('/api/v1/chat/inquiries/999999')->assertNotFound();
     }
 
     public function test_inquiry_requires_bride_or_groom_and_valid_body_and_is_unique(): void
@@ -82,10 +113,16 @@ class InquiryChatControllerTest extends TestCase
         $this->postJson("/api/v1/vendors/{$vendorProfile->id}/inquiries", ['body' => ''])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['body']);
+        $this->postJson("/api/v1/vendors/{$vendorProfile->id}/inquiries", [
+            'body' => 'Is this date available?',
+            'requested_date' => '2020-01-01',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['requested_date']);
         $this->postJson("/api/v1/vendors/{$vendorProfile->id}/inquiries", ['body' => 'Hello'])->assertCreated();
         $this->postJson("/api/v1/vendors/{$vendorProfile->id}/inquiries", ['body' => 'Hello again'])
             ->assertConflict()
             ->assertJsonPath('message', 'You already have an inquiry with this vendor.');
+
+        $this->getJson('/api/v1/chat/inquiries?page=0')->assertUnprocessable()->assertJsonValidationErrors(['page']);
     }
 
     /** @return array{User, VendorProfile} */

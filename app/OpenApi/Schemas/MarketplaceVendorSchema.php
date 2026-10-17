@@ -22,7 +22,7 @@ use OpenApi\Annotations as OA;
  *     @OA\Property(property="available_to", type="string", format="date", nullable=true, example="2027-12-31"),
  *     @OA\Property(property="rating", type="number", format="float", nullable=true, minimum=1, maximum=5, example=4.75, description="Average rating rounded to two decimal places; null if no reviews exist."),
  *     @OA\Property(property="reviews_count", type="integer", minimum=0, example=12),
- *     @OA\Property(property="image_paths", type="array", @OA\Items(type="string", example="vendor-images/42/cover.jpg"))
+ *     @OA\Property(property="image_paths", type="array", description="Public absolute image URLs. The legacy field name is retained for API compatibility.", @OA\Items(type="string", format="uri", example="https://api.example.com/storage/vendors/42/images/cover.jpg"))
  * )
  */
 final class MarketplaceVendorSchema {}

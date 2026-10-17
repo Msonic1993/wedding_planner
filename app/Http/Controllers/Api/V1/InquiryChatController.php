@@ -11,6 +11,7 @@ use App\Http\Requests\Api\V1\Chat\CreateInquiryRequest;
 use App\Http\Requests\Api\V1\Chat\SendChatMessageRequest;
 use App\Http\Resources\Api\V1\ChatMessageResource;
 use App\Http\Resources\Api\V1\VendorInquiryResource;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use OpenApi\Annotations as OA;
@@ -29,7 +30,7 @@ class InquiryChatController extends Controller
      *
      *     @OA\Parameter(name="vendor", in="path", required=true, description="Vendor profile ID from marketplace search.", @OA\Schema(type="integer", format="int64", example=42)),
      *
-     *     @OA\RequestBody(required=true, description="Initial inquiry message in JSON.", @OA\JsonContent(required={"body"}, @OA\Property(property="body", type="string", minLength=1, maxLength=5000, example="Hello, are you available on 12 June 2027?"), @OA\Property(property="requested_date", type="string", format="date", nullable=true, example="2027-06-12", description="Optional requested event date in YYYY-MM-DD format."))),
+     *     @OA\RequestBody(required=true, description="Initial inquiry message in JSON.", @OA\JsonContent(required={"body"}, @OA\Property(property="body", type="string", minLength=1, maxLength=5000, example="Hello, are you available on 12 June 2027?"), @OA\Property(property="requested_date", type="string", format="date", nullable=true, example="2027-06-12", description="Optional requested event date in YYYY-MM-DD format; it cannot be in the past."))),
      *
      *     @OA\Response(response=201, description="Inquiry and its initial message were created.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", type="string", example="Inquiry has been created."), @OA\Property(property="data", ref="#/components/schemas/VendorInquiry"), @OA\Property(property="errors", nullable=true, example=null))),
      *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
@@ -54,9 +55,10 @@ class InquiryChatController extends Controller
      *     summary="List own inquiry threads",
      *     description="Bride and Groom receive threads they created. Vendor receives threads addressed to vendor profiles owned by that account. Results are newest activity first. No user can see another participant's threads.",
      *
+     *     @OA\Parameter(name="page", in="query", description="Page number; defaults to 1.", @OA\Schema(type="integer", minimum=1, default=1, example=1)),
      *     @OA\Parameter(name="per_page", in="query", description="Items per page; default 20, minimum 1, maximum 100.", @OA\Schema(type="integer", minimum=1, maximum=100, default=20, example=20)),
      *
-     *     @OA\Response(response=200, description="Structured success response. data is a Laravel paginator of VendorInquiry objects with current_page, per_page and total metadata.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", type="object", @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/VendorInquiry")), @OA\Property(property="current_page", type="integer", example=1), @OA\Property(property="per_page", type="integer", example=20), @OA\Property(property="total", type="integer", example=1)), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=200, description="Paginated inquiry list.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", ref="#/components/schemas/VendorInquiryList"), @OA\Property(property="errors", nullable=true, example=null))),
      *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=403, description="Authenticated user has none of Bride, Groom, Vendor roles.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=422, description="per_page is outside the 1–100 range or is not an integer.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
@@ -66,7 +68,39 @@ class InquiryChatController extends Controller
     {
         $inquiries = $this->chat->listInquiries($request->user(), $request->integer('per_page', 20));
 
-        return $this->success(VendorInquiryResource::collection($inquiries));
+        return $this->success([
+            'items' => VendorInquiryResource::collection($inquiries->items()),
+            'pagination' => [
+                'current_page' => $inquiries->currentPage(),
+                'last_page' => $inquiries->lastPage(),
+                'per_page' => $inquiries->perPage(),
+                'total' => $inquiries->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/chat/inquiries/{inquiry}",
+     *     tags={"Inquiries and chat"},
+     *     security={{"sanctum":{}}},
+     *     summary="Get one inquiry thread",
+     *     description="Returns thread context only to its couple participant or the owner of the addressed vendor profile. This endpoint supports direct links and screen refreshes without relying on client cache.",
+     *
+     *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID.", @OA\Schema(type="integer", format="int64", example=31)),
+     *
+     *     @OA\Response(response=200, description="Inquiry thread context.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", ref="#/components/schemas/VendorInquiry"), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     * )
+     */
+    public function show(VendorInquiry $inquiry): JsonResponse
+    {
+        /** @var User $user */
+        $user = request()->user();
+
+        return $this->success(new VendorInquiryResource($this->chat->getInquiry($user, $inquiry)));
     }
 
     /**
@@ -75,12 +109,13 @@ class InquiryChatController extends Controller
      *     tags={"Inquiries and chat"},
      *     security={{"sanctum":{}}},
      *     summary="Read messages from an inquiry thread",
-     *     description="Only the couple who created the inquiry and the owner of the addressed vendor profile may read the thread. Messages are sorted oldest first for direct chronological rendering in a mobile chat UI.",
+     *     description="Only the couple who created the inquiry and the owner of the addressed vendor profile may read the thread. Page 1 contains the newest message window; items inside every page are returned oldest first. Fetch subsequent pages to prepend older history.",
      *
      *     @OA\Parameter(name="inquiry", in="path", required=true, description="Inquiry thread ID returned by GET /chat/inquiries.", @OA\Schema(type="integer", format="int64", example=31)),
-     *     @OA\Parameter(name="per_page", in="query", description="Messages per page; default 20, minimum 1, maximum 100.", @OA\Schema(type="integer", minimum=1, maximum=100, default=20, example=20)),
+     *     @OA\Parameter(name="page", in="query", description="Page number; defaults to 1.", @OA\Schema(type="integer", minimum=1, default=1, example=1)),
+     *     @OA\Parameter(name="per_page", in="query", description="Messages per page; default 50, minimum 1, maximum 100.", @OA\Schema(type="integer", minimum=1, maximum=100, default=50, example=50)),
      *
-     *     @OA\Response(response=200, description="Structured success response. data is a Laravel paginator of ChatMessage objects.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", type="object", @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/ChatMessage")), @OA\Property(property="current_page", type="integer", example=1), @OA\Property(property="per_page", type="integer", example=20), @OA\Property(property="total", type="integer", example=2)), @OA\Property(property="errors", nullable=true, example=null))),
+     *     @OA\Response(response=200, description="Paginated messages sorted oldest first.", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true), @OA\Property(property="message", nullable=true, example=null), @OA\Property(property="data", ref="#/components/schemas/ChatMessageList"), @OA\Property(property="errors", nullable=true, example=null))),
      *     @OA\Response(response=401, description="Missing or invalid Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=403, description="Authenticated user is not a participant of the inquiry.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=404, description="Inquiry does not exist.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
@@ -89,9 +124,18 @@ class InquiryChatController extends Controller
      */
     public function messages(ChatPaginationRequest $request, VendorInquiry $inquiry): JsonResponse
     {
-        $messages = $this->chat->listMessages($request->user(), $inquiry, $request->integer('per_page', 20));
+        $messages = $this->chat->listMessages($request->user(), $inquiry, $request->integer('per_page', 50));
+        $orderedMessages = collect($messages->items())->sortBy('id')->values();
 
-        return $this->success(ChatMessageResource::collection($messages));
+        return $this->success([
+            'items' => ChatMessageResource::collection($orderedMessages),
+            'pagination' => [
+                'current_page' => $messages->currentPage(),
+                'last_page' => $messages->lastPage(),
+                'per_page' => $messages->perPage(),
+                'total' => $messages->total(),
+            ],
+        ]);
     }
 
     /**

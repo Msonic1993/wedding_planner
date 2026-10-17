@@ -48,11 +48,18 @@ class EloquentInquiryChatService implements InquiryChatService
         return $query->paginate($perPage);
     }
 
+    public function getInquiry(User $user, VendorInquiry $inquiry): VendorInquiry
+    {
+        $this->ensureParticipant($user, $inquiry);
+
+        return $inquiry->load(['vendorProfile', 'couple'])->loadCount('messages');
+    }
+
     public function listMessages(User $user, VendorInquiry $inquiry, int $perPage): LengthAwarePaginator
     {
         $this->ensureParticipant($user, $inquiry);
 
-        return $inquiry->messages()->with('sender')->oldest()->paginate($perPage);
+        return $inquiry->messages()->with('sender')->orderByDesc('id')->paginate($perPage);
     }
 
     public function sendMessage(User $user, VendorInquiry $inquiry, array $attributes): ChatMessage

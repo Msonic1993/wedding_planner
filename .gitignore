@@ -7,6 +7,7 @@
 /CODEX.md
 /vendor/*
 /storage/api-docs/
+/public/storage
 .phpunit.result.cache
 .env
 /ai_memory/authentication/known-issues.md

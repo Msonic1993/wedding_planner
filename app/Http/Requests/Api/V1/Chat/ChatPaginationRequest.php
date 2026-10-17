@@ -13,6 +13,9 @@ class ChatPaginationRequest extends ApiRequest
 
     public function rules(): array
     {
-        return ['per_page' => ['nullable', 'integer', 'min:1', 'max:100']];
+        return [
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ];
     }
 }

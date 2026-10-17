@@ -15,7 +15,7 @@ class CreateInquiryRequest extends ApiRequest
     {
         return [
             'body' => ['required', 'string', 'max:5000'],
-            'requested_date' => ['nullable', 'date'],
+            'requested_date' => ['nullable', 'date', 'after_or_equal:today'],
         ];
     }
 }

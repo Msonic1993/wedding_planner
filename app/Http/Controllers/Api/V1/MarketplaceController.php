@@ -25,17 +25,18 @@ class MarketplaceController extends Controller
      *     @OA\Parameter(name="price_max", in="query", description="Maximum desired price in PLN; must not be lower than price_min.", @OA\Schema(type="number", format="float", minimum=0, example=8000)),
      *     @OA\Parameter(name="date", in="query", description="Required availability date in ISO 8601 date format.", @OA\Schema(type="string", format="date", example="2027-06-12")),
      *     @OA\Parameter(name="min_rating", in="query", description="Minimum average rating, inclusive; decimal from 1 through 5. Vendors without reviews do not match.", @OA\Schema(type="number", format="float", minimum=1, maximum=5, example=4.5)),
+     *     @OA\Parameter(name="page", in="query", description="Results page; defaults to 1.", @OA\Schema(type="integer", minimum=1, default=1, example=1)),
      *     @OA\Parameter(name="per_page", in="query", description="Number of results per page; default 15, maximum 50.", @OA\Schema(type="integer", minimum=1, maximum=50, default=15, example=15)),
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Paginated vendor results. data is a Laravel paginator: its numeric indexes contain marketplace vendor items and it also exposes pagination metadata.",
+     *         description="Paginated vendor results with an explicit items array and pagination metadata.",
      *
      *         @OA\JsonContent(
      *
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", nullable=true, example=null),
-     *             @OA\Property(property="data", type="object", @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/MarketplaceVendor")), @OA\Property(property="current_page", type="integer", example=1), @OA\Property(property="per_page", type="integer", example=15), @OA\Property(property="total", type="integer", example=1)),
+     *             @OA\Property(property="data", type="object", required={"items","pagination"}, @OA\Property(property="items", type="array", @OA\Items(ref="#/components/schemas/MarketplaceVendor")), @OA\Property(property="pagination", type="object", required={"current_page","last_page","per_page","total"}, @OA\Property(property="current_page", type="integer", example=1), @OA\Property(property="last_page", type="integer", example=3), @OA\Property(property="per_page", type="integer", example=15), @OA\Property(property="total", type="integer", example=31))),
      *             @OA\Property(property="errors", nullable=true, example=null)
      *         )
      *     ),
@@ -80,6 +81,16 @@ class MarketplaceController extends Controller
             );
         }
 
-        return $this->success(MarketplaceVendorResource::collection($vendors->paginate($filters['per_page'] ?? 15)->appends($filters)));
+        $page = $vendors->paginate($filters['per_page'] ?? 15)->appends($filters);
+
+        return $this->success([
+            'items' => MarketplaceVendorResource::collection($page->items()),
+            'pagination' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+            ],
+        ]);
     }
 }

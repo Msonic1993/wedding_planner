@@ -16,12 +16,12 @@ class MarketplaceControllerTest extends TestCase
         $match = User::factory()->create()->vendorProfile()->create(['name' => 'Foto Warszawa', 'categories' => ['photographer'], 'cities' => ['Warszawa'], 'voivodeship' => 'mazowieckie', 'price_from' => 2000, 'price_to' => 5000, 'available_from' => '2027-01-01', 'available_to' => '2027-12-31']);
         User::factory()->create()->vendorProfile()->create(['name' => 'DJ Krakow', 'categories' => ['dj'], 'cities' => ['Krakow'], 'voivodeship' => 'malopolskie', 'price_from' => 1000, 'price_to' => 2000]);
 
-        $this->getJson('/api/v1/marketplace/vendors?category=photographer&voivodeship=mazowieckie&city=Warszawa&price_min=3000&price_max=6000&date=2027-06-12')->assertOk()->assertJsonPath('success', true)->assertJsonPath('data.0.id', $match->id);
+        $this->getJson('/api/v1/marketplace/vendors?category=photographer&voivodeship=mazowieckie&city=Warszawa&price_min=3000&price_max=6000&date=2027-06-12')->assertOk()->assertJsonPath('success', true)->assertJsonPath('data.items.0.id', $match->id)->assertJsonPath('data.pagination.current_page', 1)->assertJsonPath('data.pagination.total', 1);
     }
 
     public function test_search_validates_filters(): void
     {
-        $this->getJson('/api/v1/marketplace/vendors?category=wrong&per_page=100')->assertUnprocessable()->assertJsonPath('success', false)->assertJsonValidationErrors(['category', 'per_page']);
+        $this->getJson('/api/v1/marketplace/vendors?category=wrong&page=0&per_page=100')->assertUnprocessable()->assertJsonPath('success', false)->assertJsonValidationErrors(['category', 'page', 'per_page']);
     }
 
     public function test_search_returns_rating_and_filters_by_minimum_average_rating(): void
@@ -35,9 +35,9 @@ class MarketplaceControllerTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.0.id', $highRated->id)
-            ->assertJsonPath('data.0.rating', 5)
-            ->assertJsonPath('data.0.reviews_count', 1)
-            ->assertJsonCount(1, 'data');
+            ->assertJsonPath('data.items.0.id', $highRated->id)
+            ->assertJsonPath('data.items.0.rating', 5)
+            ->assertJsonPath('data.items.0.reviews_count', 1)
+            ->assertJsonCount(1, 'data.items');
     }
 }

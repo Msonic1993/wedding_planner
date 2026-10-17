@@ -10,6 +10,7 @@ services:
       - composer-vendor:/var/www/html/vendor
     environment:
       APP_ENV: ${APP_ENV:-local}
+    command: ["sh", "-lc", "php artisan storage:link --force && exec php-fpm"]
     networks:
       - wedding-planet
 

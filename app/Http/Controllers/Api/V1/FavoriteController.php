@@ -24,6 +24,15 @@ class FavoriteController extends Controller
      *     description="Returns only vendors saved by the authenticated Bride or Groom, newest favorites first. Each entry contains the complete MarketplaceVendor contract, including current average rating and review count. Removing a vendor profile automatically removes its favorite entries.",
      *
      *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         required=false,
+     *         description="Page number. Defaults to 1.",
+     *
+     *         @OA\Schema(type="integer", minimum=1, default=1, example=1)
+     *     ),
+     *
+     *     @OA\Parameter(
      *         name="per_page",
      *         in="query",
      *         required=false,
@@ -47,7 +56,7 @@ class FavoriteController extends Controller
      *
      *     @OA\Response(response=401, description="Missing or invalid Sanctum Bearer token.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
      *     @OA\Response(response=403, description="Authenticated account is not Bride or Groom.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
-     *     @OA\Response(response=422, description="per_page is not an integer from 1 through 50.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
+     *     @OA\Response(response=422, description="page or per_page is outside the accepted range.", @OA\JsonContent(ref="#/components/schemas/ErrorResponse"))
      * )
      */
     public function index(FavoritePaginationRequest $request): JsonResponse

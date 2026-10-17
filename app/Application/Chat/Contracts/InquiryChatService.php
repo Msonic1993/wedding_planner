@@ -16,6 +16,8 @@ interface InquiryChatService
     /** @return LengthAwarePaginator<int, VendorInquiry> */
     public function listInquiries(User $user, int $perPage): LengthAwarePaginator;
 
+    public function getInquiry(User $user, VendorInquiry $inquiry): VendorInquiry;
+
     /** @return LengthAwarePaginator<int, ChatMessage> */
     public function listMessages(User $user, VendorInquiry $inquiry, int $perPage): LengthAwarePaginator;
 

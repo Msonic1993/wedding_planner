@@ -3,9 +3,9 @@
 namespace App\Http\Resources\Api\V1;
 
 use App\Domain\Profile\Models\WeddingProfile;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /** @mixin WeddingProfile */
 class WeddingProfileResource extends JsonResource
@@ -23,7 +23,7 @@ class WeddingProfileResource extends JsonResource
             'budget' => $this->budget,
             'guest_count' => $this->guest_count,
             'location' => $this->location,
-            'photo_url' => $this->photo_path === null ? null : Storage::disk($disk)->url($this->photo_path),
+            'photo_url' => $this->photo_path === null ? null : PublicMediaUrl::for($request, $this->photo_path, $disk),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

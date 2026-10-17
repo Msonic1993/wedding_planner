@@ -27,6 +27,11 @@ class VendorReviewControllerTest extends TestCase
             ->assertJsonPath('message', 'Review has been created.')
             ->assertJsonPath('data.rating', 5);
 
+        $this->getJson("/api/v1/vendors/{$vendor->id}/review")
+            ->assertOk()
+            ->assertJsonPath('data.rating', 5)
+            ->assertJsonPath('data.comment', 'Excellent service.');
+
         $this->patchJson("/api/v1/vendors/{$vendor->id}/review", [
             'rating' => 4,
             'comment' => null,
@@ -72,6 +77,20 @@ class VendorReviewControllerTest extends TestCase
         $this->postJson("/api/v1/vendors/{$vendor->id}/review", ['rating' => 3])
             ->assertConflict()
             ->assertJsonPath('message', 'Your review for this vendor already exists.');
+    }
+
+    public function test_own_review_lookup_is_private_and_returns_not_found_when_missing(): void
+    {
+        $vendor = $this->vendorProfile();
+
+        $this->getJson("/api/v1/vendors/{$vendor->id}/review")->assertUnauthorized();
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->getJson("/api/v1/vendors/{$vendor->id}/review")->assertForbidden();
+
+        Sanctum::actingAs($this->bride());
+        $this->getJson("/api/v1/vendors/{$vendor->id}/review")->assertNotFound();
+        $this->getJson('/api/v1/vendors/999999/review')->assertNotFound();
     }
 
     private function bride(): User
